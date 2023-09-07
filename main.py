@@ -16,7 +16,8 @@ voice_location = "E:\\tmp\\bg3-modders-multitool\\UnpackedData\\Voice\\Mods\\Gus
 
 tmp_voice_location = "\\Data\\Output\\tmp_wem"
 output_dialog = "\\Data\\Output\\dialogs_final.txt"
-output_content_json = "\\Data\\Output\\final.json"
+tmp_content_json = "\\Data\\Output\\tmp.json"
+final_content_json = "\\Data\\Output\\final.json"
 output_audio_path = "\\Data\\Output\\result.wav"
 output_srt_path = "\\Data\\Output\\result.srt"
 
@@ -100,7 +101,7 @@ def generate_script():
     file.write(output_string)
     file.close()
 
-    output_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_content_json}"
+    output_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{tmp_content_json}"
     with open(output_path, "w", encoding="utf-8") as file:
         # Write the JSON data to the file
         json.dump(output_json, file, ensure_ascii=False)
@@ -261,17 +262,52 @@ def get_speaker_name(input_json, speaker_list):
             }
 
 
-def output_wav_subtitle():
+def output_dialog_order(step):
     """
     concatenate audios and generate subtitle
     :return:
     """
-    full_file_name = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_content_json}"
+    full_file_name = f"{os.path.dirname(os.path.abspath(__file__))}\\{tmp_content_json}"
     with open(full_file_name, 'r', encoding='utf-8') as f:
         json_content = json.loads(f.read())
-        # wem_file_list = list_wem_filename(json_content)
-        # print(wem_file_list)
-        generate_wav(json_content)
+        if step == 1:
+            wem_file_list = list_wem_filename(json_content)
+            print(wem_file_list)
+        elif step == 2:
+            random_order(json_content)
+        else:
+            generate_final_json(json_content)
+
+def generate_final_json(json_content):
+    directory = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_voice_order_list}"
+    # Load the contents of the JSON file
+    with open(directory, 'r') as file:
+        file_list = json.load(file)
+
+    dialog_list = []
+    for file in file_list:
+        for dialog in json_content['pb']:
+            if file[:-4] == dialog['title']:
+                print(dialog)
+                dialog_list.append(dialog)
+    final_json = {"pb": dialog_list}
+
+    output_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{final_content_json}"
+    with open(output_path, "w", encoding="utf-8") as file:
+        # Write the JSON data to the file
+        json.dump(final_json, file, ensure_ascii=False)
+
+
+def random_order(json_content):
+    import random
+    random.shuffle(json_content['pb'])
+    for item in json_content['pb']:
+        print(item['title'])
+        # Write the file list to a JSON file
+    output_file_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_voice_order_list}"
+
+    with open(output_file_path, 'w') as output_file:
+        json.dump(json_content['pb'], output_file)
 
 
 def generate_wav(content_json):
@@ -281,7 +317,6 @@ def generate_wav(content_json):
         # Initialize the output audio and subtitle variables
         output_audio = AudioSegment.empty()
 
-        subs = pysrt.SubRipFile()
         # Initialize a time counter
         current_time = 0
         # Initialize an empty subtitle list to store the generated subtitles
@@ -364,89 +399,78 @@ def list_wem_filename(content_json):
                     wem_list.append(copied_path)
                     sentence['wem_location'] = copied_path
 
-    output_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_content_json}"
+    output_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{tmp_content_json}"
     with open(output_path, "w", encoding="utf-8") as file:
         # Write the JSON data to the file
         json.dump(content_json, file, ensure_ascii=False)
     return wem_list
 
 
-def generated_combined_audio():
-    # generate_file_order()
-    directory = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_voice_order_list}"
-    # Load the contents of the JSON file
-    with open(directory, 'r') as file:
-        file_list = json.load(file)
-
-    output_audio = AudioSegment.empty()
-
-    # Initialize an empty list to store the subtitles
-    subtitles = []
+def combine_audio_sub():
+    full_file_name = f"{os.path.dirname(os.path.abspath(__file__))}\\{final_content_json}"
+    with open(full_file_name, 'r', encoding='utf-8') as f:
+        content_json = json.loads(f.read())
 
     time_gap = 5000
+    output_audio = AudioSegment.empty()
 
-    for file in file_list:
-        wav_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_voice_location}\\{file}"
-        audio_segment = AudioSegment.from_file(wav_path, format='wav')
+    current_time = 0
+    order = 1
+    subtitles = pysrt.SubRipFile()
+
+    for dialog in content_json['pb']:
+        skip_current_dialog = False
+        for sentence in dialog['dialog']:
+            if "wem_location" in sentence:
+                wem_path = sentence['wem_location']
+                wav_path = f"{wem_path[:-4]}.wav"
+                # wem_to_wav(wem_path, wav_path)
+                audio_segment = AudioSegment.from_file(wav_path, format='wav')
+                # Load the audio file
+                output_audio += audio_segment + AudioSegment.silent(duration=500)
+
+                # Calculate the duration of the audio clip in milliseconds
+                duration = len(audio_segment)
+
+                # Create a new subtitle item
+                subtitle_item = pysrt.SubRipItem()
+
+                # Set the start time for the subtitle item based on the current time
+                subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+                # Calculate the end time by adding the duration to the start time
+                subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
+                subtitle_item.index = order
+                # Set the text of the subtitle item
+                subtitle_item.text = f"{sentence['ch']}\n{sentence['eng']}"
+
+                # Append the subtitle item to the subtitles list
+                subtitles.append(subtitle_item)
+
+                # Update the current time counter
+                current_time += duration + 500
+                order += 1
+                print(current_time)
+                # subtitle_item.text = f"{sentence['ch']}\n{sentence['eng']}"
+
+            else:
+                skip_current_dialog = True
+                break
         # Load the audio file
-        output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
-        #
-        # # Calculate the duration of the audio clip in milliseconds
-        # duration = len(audio_segment)
-        # # Define the delay duration in milliseconds (e.g. 5 minutes = 300000 milliseconds)
-        # delay_duration = pysrt.SubRipTime(milliseconds=time_gap)
-        #
-        # subtitle_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{dialog_srt_location}\\{file[:-4]}.srt"
-        # # Open the subtitle file using pysrt
-        # subtitle = pysrt.open(subtitle_path)
-        #
-        # # Iterate over each subtitle item and delay the start and end times
-        # for item in subtitle:
-        #     item.start =  pysrt.SubRipTime(milliseconds=item.start + duration)
-        #     item.end += delay_duration
-        #
-        # # Append the subtitles to the list
-        # subtitles.append(subtitle)
+        output_audio += AudioSegment.silent(duration=time_gap)
+        current_time += time_gap
+
+        if skip_current_dialog:
+            print(f"skip the dialog of {dialog['title']}")
+            continue
+
 
     # Export the concatenated audio to a .wav file
     wav_destintion = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_audio_path}"
     output_audio.export(wav_destintion, format="wav")
     print(f"saved wav: {wav_destintion}")
-
-    # Calculate the total duration of the subtitles and the time to insert between them
-    # total_duration = sum([(subtitle[-1].end.ordinal - subtitle[0].start.ordinal) / 1000 + (
-    #         subtitle[0].start.hours * 3600) + (subtitle[0].start.minutes * 60) + subtitle[0].start.seconds for
-    #                       subtitle in subtitles]) + (len(subtitles) - 1) * time_gap
-    #
-    # # Initialize an empty subtitle list to store the concatenated subtitles
-    # concatenated_subtitle = pysrt.SubRipFile()
-
-    # Concatenate the subtitles and adjust timestamps
-    # current_time = 0  # Initialize the current time counter in seconds
-    #
-    # for i, subtitle in enumerate(subtitles):
-    #     # Shift the subtitle timestamps
-    #     subtitle.shift(seconds=current_time)
-    #
-    #     # Append the adjusted subtitle to the concatenated subtitle list
-    #     concatenated_subtitle.extend(subtitle)
-    #
-    #     if i < len(subtitles) - 1:
-    #         # Add a time gap between subtitle files
-    #         current_time += time_gap
-    #
-    #     # Calculate the duration of the current subtitle
-    #     start_time = subtitle[0].start
-    #     end_time = subtitle[-1].end
-    #     subtitle_duration = (end_time.ordinal - start_time.ordinal) / 1000 + (start_time.hours * 3600) + (
-    #             start_time.minutes * 60) + start_time.seconds
-    #
-    #     # Update the current time counter
-    #     current_time += subtitle_duration
-    # # Save the final concatenated subtitle to a file
-    # final_output_srt_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_srt_path}"
-    # concatenated_subtitle.save(final_output_srt_path, encoding='utf-8')
-    # print(f"saved srt: {final_output_srt_path}")
+    srt_destination = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_srt_path}"
+    subtitles.save(srt_destination)
+    print(f"saved srt: {srt_destination}")
 
 
 def generate_file_order():
@@ -460,15 +484,15 @@ def generate_file_order():
     random.shuffle(file_list)
 
     # Write the file list to a JSON file
-    output_file_path = 'file_list.json'
+    output_file_path = 'Data/Output/file_list.json'
     with open(output_file_path, 'w') as output_file:
         json.dump(file_list, output_file)
 
 
 def generate_banter_files():
     # generate_script()
-    # output_wav_subtitle()
-    generated_combined_audio()
+    # output_dialog_order(3)
+    combine_audio_sub()
 
 
 # Press the green button in the gutter to run the script.
