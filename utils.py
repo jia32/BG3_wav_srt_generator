@@ -4,9 +4,9 @@ import xml.etree.ElementTree as ET
 import re
 import csv
 import fnmatch
+import shutil
 from constant import speaker_name, speaker_name_ch, output_dialog, tmp_content_json, speaker_code, speaker_code_ch, \
     spell_gen, spell_json, spell_out_csv, voice_location
-
 
 
 def output_dialog_txt_file(output_string):
@@ -495,6 +495,7 @@ def print_spell():
         # Write the JSON data to the file
         json.dump(content, file, ensure_ascii=False)
 
+
 def content_exist(contentuid):
     # check if content id could match exists wem file
     pattern = f"*{contentuid}.wem"
@@ -522,3 +523,21 @@ def get_specific_line(file_path, line_number):
             if index == line_number:
                 return line.rstrip('\n')
     return None
+
+
+def move_wav_with_txt(txt_path, wav_path, target_path):
+    with open(txt_path, 'r', encoding='utf-8') as f:
+        vm_cast = f.readlines()
+    count = 0
+    print(vm_cast)
+    for i in range(0, len(vm_cast), 2):
+        line2 = vm_cast[i + 1].strip()
+        pattern = f"*{line2}.wav"
+        # print(pattern)
+        for root, dirs, files in os.walk(wav_path):
+            for matched_wav in fnmatch.filter(files, pattern):
+                source_wav = os.path.join(root, matched_wav)
+                shutil.move(source_wav, target_path)
+                print(f"moved {matched_wav} to {target_path}")
+                count += 1
+    print(f"moved {count} files")

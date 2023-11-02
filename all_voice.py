@@ -4,8 +4,8 @@ import shutil
 import fnmatch
 from pydub import AudioSegment
 import pysrt
-from utils import generate_line_srt_by_filename, load_text_from_lsj
-from constant import char_final, translated, base_path
+from utils import generate_line_srt_by_filename, load_text_from_lsj, move_wav_with_txt
+from constant import char_final, translated, base_path, vicious_mockery_cast_path, vicious_mockery_prepare_path
 
 '''
 @Project:        BG3 voice generator
@@ -19,16 +19,26 @@ from constant import char_final, translated, base_path
 def distinguish_audio(job_name):
     wav_path = rf"{base_path}{job_name}\wav\\"
     char_wav_path = rf"{base_path}{job_name}\char_wav\\"
-    orin_tmp_path = rf"{base_path}Orin\scripts\wav\{job_name}\\"
+    orin_path = rf"{base_path}Orin\scripts\wav\{job_name}\\"
+    orin_tmp_path = rf"{base_path}{job_name}\orin_wav\\"
     if not os.path.exists(char_wav_path):
         os.makedirs(char_wav_path)
     if not os.path.exists(orin_tmp_path):
         os.makedirs(orin_tmp_path)
-    output_file_path = rf"{base_path}\{job_name}\need_to_move.json"
+    output_file_json = rf"{base_path}\{job_name}\need_to_move.json"
+    vm_path = rf"{base_path}{job_name}\vm_wav\\"
+    if not os.path.exists(vm_path):
+        os.makedirs(vm_path)
+    gather_to_be_moved(wav_path, char_wav_path)
+    copy_with_file_list(output_file_json, char_wav_path)
+    remove_orin(orin_path, wav_path, orin_tmp_path)
+    move_visious_mockery(wav_path, vm_path)
 
-    # gather_to_be_moved(wav_path, char_wav_path)
-    # copy_with_file_list(output_file_path, char_wav_path)
-    # remove_orin(orin_path, wav_path, orin_tmp_path)
+
+def move_visious_mockery(wav_path, target_path):
+    print("move visious mockery voiceline")
+    move_wav_with_txt(vicious_mockery_prepare_path, wav_path, target_path)
+    move_wav_with_txt(vicious_mockery_cast_path, wav_path, target_path)
 
 
 def remove_orin(orin_path, wav_path, target_path):
@@ -190,7 +200,7 @@ def combine_audio(job_name, iteration):
 
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
-            if i > file_limit*(iteration-1):
+            if i > file_limit * (iteration - 1):
                 wav_current = rf"{path}{file}"
                 audio_segment = AudioSegment.from_file(wav_current, format='wav')
 
@@ -219,7 +229,7 @@ def combine_audio(job_name, iteration):
                 current_time += duration + time_gap
 
                 subtitles.append(subtitle_item)
-                if i == file_limit*iteration:
+                if i == file_limit * iteration:
                     # if (i + 1) % file_limit == 0:
                     # out_wav_destination = rf"{out_path}out_{output_counter}.wav"
                     # output_audio.export(out_wav_destination, format="wav")

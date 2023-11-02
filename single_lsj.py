@@ -3,7 +3,7 @@ import json
 from utils import get_speaker_list, generate_new_node, filled_string, generate_output_list
 
 
-def generate_other_script():
+def generate_other_script(filename):
     '''
     根据lsj文件，打印文本内容
     （功能不完善，可以直接使用html的文件进行对比，已废弃）
@@ -13,7 +13,7 @@ def generate_other_script():
     output_string = ""
     output_json = {}
     sentence_list = []
-    f = open(death, 'r')
+    f = open(filename, 'r')
     content = json.loads(f.read())
     # generate content json
 

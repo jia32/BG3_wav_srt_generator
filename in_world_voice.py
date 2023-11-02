@@ -9,6 +9,7 @@ import random
 from utils import load_text_from_lsj, print_text_from_lsj, generate_line_srt_by_filename, find_through_metafile
 from constant import karlach_wem, karlach_tmp, karlach_directory, karlach_wav, voice_location, speaker_code, \
     speaker_code_ch
+
 '''
 @Project:        BG3 voice generator
 @File:           in_world_voice.py
@@ -17,6 +18,7 @@ from constant import karlach_wem, karlach_tmp, karlach_directory, karlach_wav, v
                  使用txt中间文件来，选取需要生成的音频及字幕
                  支持多个lsj文件-一组lsj文件生成一个音频
 '''
+
 
 def create_dialog_txt(script_location, filename):
     '''

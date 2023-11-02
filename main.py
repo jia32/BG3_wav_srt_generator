@@ -35,8 +35,7 @@ def generate_char_script():
     script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
     script_txt = f"{script_path}{job_name}.txt"
     wav_path = rf"{base_path}\Orin\scripts\wav\{job_name}\\"
-
-    create_dialog_txt(script_location, filename)
+    # create_dialog_txt(script_location, filename2)
     # copy_audio_wem(script_txt, current_target_path)
     # generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
     # generate_full_audio()
@@ -57,10 +56,10 @@ def generate_other_files():
 
 def generate_all_files():
     char = "Gale"
-    # distinguish_audio(char)
+    distinguish_audio(char)
     # combine_char_audio(char)
-    iteration = 2
-    combine_audio(char, iteration)
+    iteration = 4
+    # combine_audio(char, iteration)
 
 
 # Press the green button in the gutter to run the script.
