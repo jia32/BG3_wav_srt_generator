@@ -15,6 +15,7 @@ from constant import char_final, translated, base_path
                  由于实在是太大了所以手动iteration
 '''
 
+
 def distinguish_audio(job_name):
     wav_path = rf"{base_path}{job_name}\wav\\"
     char_wav_path = rf"{base_path}{job_name}\char_wav\\"
@@ -169,7 +170,7 @@ def add_translation(line):
         return line
 
 
-def combine_audio(job_name):
+def combine_audio(job_name, iteration):
     '''
     组合最后的音频和字幕
     有些角色的太多了，所以以1000为界。由于跑得太慢所以没有做完全的自动化处理，手动iteration
@@ -189,48 +190,49 @@ def combine_audio(job_name):
 
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
-            # if i > 6000:
-            wav_current = rf"{path}{file}"
-            audio_segment = AudioSegment.from_file(wav_current, format='wav')
+            if i > file_limit*(iteration-1):
+                wav_current = rf"{path}{file}"
+                audio_segment = AudioSegment.from_file(wav_current, format='wav')
 
-            channel1 = audio_segment.channels
-            channel2 = output_audio.channels
-            if channel1 != channel2:
-                if channel1 > channel2:
-                    audio_segment = audio_segment.set_channels(channel2)
-                if channel1 < channel2:
-                    output_audio = output_audio.set_channels(channel1)
+                channel1 = audio_segment.channels
+                channel2 = output_audio.channels
+                if channel1 != channel2:
+                    if channel1 > channel2:
+                        audio_segment = audio_segment.set_channels(channel2)
+                    if channel1 < channel2:
+                        output_audio = output_audio.set_channels(channel1)
 
-            output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
-            order += 1
-            print(order)
-            specific_line = generate_line_srt_by_filename(file)
-            print(specific_line)
+                output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+                order += 1
+                print(order)
+                specific_line = generate_line_srt_by_filename(file)
+                print(specific_line)
 
-            duration = len(audio_segment)
-            subtitle_item = pysrt.SubRipItem()
+                duration = len(audio_segment)
+                subtitle_item = pysrt.SubRipItem()
 
-            subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
-            subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
-            subtitle_item.index = order
-            subtitle_item.text = f"{specific_line}"
+                subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+                subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
+                subtitle_item.index = order
+                subtitle_item.text = f"{specific_line}"
 
-            current_time += duration + time_gap
+                current_time += duration + time_gap
 
-            subtitles.append(subtitle_item)
-            if i == 1000:
-                # if (i + 1) % file_limit == 0:
-                # out_wav_destination = rf"{out_path}out_{output_counter}.wav"
-                # output_audio.export(out_wav_destination, format="wav")
-                # output_counter += 1
-                # output_audio = AudioSegment.silent(duration=0)
+                subtitles.append(subtitle_item)
+                if i == file_limit*iteration:
+                    # if (i + 1) % file_limit == 0:
+                    # out_wav_destination = rf"{out_path}out_{output_counter}.wav"
+                    # output_audio.export(out_wav_destination, format="wav")
+                    # output_counter += 1
+                    # output_audio = AudioSegment.silent(duration=0)
 
-                out_srt_destination = rf"{out_path}all_1.srt"
-                subtitles.save(out_srt_destination)
-                print(f"saved srt: {out_srt_destination}")
-                wav_destination = rf"{out_path}all_1.wav"
-                output_audio.export(wav_destination, format="wav")
-                print(f"saved wav: {wav_destination}")
+                    out_srt_destination = rf"{out_path}all_{iteration}.srt"
+                    subtitles.save(out_srt_destination)
+                    print(f"saved srt: {out_srt_destination}")
+                    wav_destination = rf"{out_path}all_{iteration}.wav"
+                    output_audio.export(wav_destination, format="wav")
+                    print(f"saved wav: {wav_destination}")
+                    return
     # current_time += time_gap * 3
     # output_audio += AudioSegment.silent(duration=time_gap*3)
 
