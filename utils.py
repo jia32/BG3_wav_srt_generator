@@ -6,7 +6,7 @@ import csv
 import fnmatch
 import shutil
 from constant import speaker_name, speaker_name_ch, output_dialog, tmp_content_json, speaker_code, speaker_code_ch, \
-    spell_gen, spell_json, spell_out_csv, voice_location
+    spell_gen, spell_json, spell_out_csv, voice_location, voice_meta_file_path
 
 
 def output_dialog_txt_file(output_string):
@@ -306,7 +306,7 @@ def print_text_from_lsj(json_content_list, other_value):
     # print(output_list(file_name, json_content_string))
 
 
-def generate_line_srt_by_filename(filename):
+def generate_line_srt_by_filename(filename, with_name, with_ch):
     minsc_ch = {}
     filename = filename[:-4]
     # print(filename)
@@ -350,11 +350,16 @@ def generate_line_srt_by_filename(filename):
             if speaker == "":
                 result_en = f"{content_string}"
             else:
-                result_en = f"{speaker}: {content_string}"
-                result_en = f"{content_string}"
+                if with_name:
+                    result_en = f"{speaker}: {content_string}"
+                else:
+                    result_en = f"{content_string}"
 
         else:
             result_en = ""
+
+        if not with_ch:
+            return f"{result_en}"
 
         content_elem_ch = root_ch.find(f"./content[@contentuid='{contentuid}']")
         if content_elem_ch is not None:
@@ -365,8 +370,10 @@ def generate_line_srt_by_filename(filename):
             if speaker_ch == "":
                 result_ch = f"{content_string}"
             else:
-                result_ch = f"{speaker_ch}: {content_string}"
-                result_ch = f"{content_string}"
+                if with_name:
+                    result_ch = f"{speaker_ch}: {content_string}"
+                else:
+                    result_ch = f"{content_string}"
         else:
             result_ch = ""
         if result_en in minsc_ch:
@@ -541,3 +548,54 @@ def move_wav_with_txt(txt_path, wav_path, target_path):
                 print(f"moved {matched_wav} to {target_path}")
                 count += 1
     print(f"moved {count} files")
+
+
+def locate_specific_line(wav_filename):
+    lsj_path = locate_lsj(wav_filename)
+    contetnt_list = find_contentuid_within_lsj(wav_filename, lsj_path)
+    return find_text_by_uid(contetnt_list)
+
+
+def locate_lsj(wav_filename):
+    wem_filename = f"{wav_filename[:-4]}.wem"
+    return search_in_file(voice_meta_file_path, wem_filename, True)
+
+
+def find_contentuid_within_lsj(wav_filename, lsj_path):
+    wem_filename = f"{wav_filename[:-4]}.wem"
+    value_list = []
+    with open(lsj_path, 'r', encoding='utf-8') as f:
+        json_meta = json.load(f)
+
+    for metaData in json_meta['save']['regions']['VoiceMetaData']['VoiceSpeakerMetaData']:
+        for mapNode in metaData['MapValue']:
+            for voiceMetaNode in mapNode['VoiceTextMetaData']:
+                for voiceMetaNodeValue in voiceMetaNode['MapValue']:
+                    if voiceMetaNodeValue['Source']['value'] == wem_filename:
+                        value_list.append(voiceMetaNode['MapKey']['value'])
+    # print(value_list)
+    return value_list
+
+
+def find_text_by_uid(contentuid_list):
+    for contentuid in contentuid_list:
+        result = generate_line_srt_by_filename(f"123_{contentuid}.wav", False, True)
+        if result != "":
+            return result
+
+
+def search_in_file(directory, search_string, limited):
+    for dirpath, dirnames, filenames in os.walk(directory):
+        for filename in filenames:
+            # if ".lsx" in filename:
+            file_path = os.path.join(dirpath, filename)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    if re.search(search_string, content):
+                        # print(f"Found '{search_string}' in: {file_path}")
+                        if limited:
+                            return file_path
+            except Exception as e:
+                print(f"Error reading file {file_path}: {e}")
+    print('string not found')

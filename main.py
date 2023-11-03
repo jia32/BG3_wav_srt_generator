@@ -55,11 +55,16 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = "Gale"
+    char = "Astarion"
     distinguish_audio(char)
     # combine_char_audio(char)
-    iteration = 4
-    # combine_audio(char, iteration)
+
+    # combine_audio(char, 1, 1000)
+    # combine_audio(char, 2, 1000)
+    # combine_audio(char, 3, 1000)
+    # combine_audio(char, 4, 1000)
+    # combine_audio(char, 5, 1000)
+    # combine_audio(char, 6, 1000)
 
 
 # Press the green button in the gutter to run the script.

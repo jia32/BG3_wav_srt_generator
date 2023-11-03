@@ -4,7 +4,8 @@ import shutil
 import fnmatch
 from pydub import AudioSegment
 import pysrt
-from utils import generate_line_srt_by_filename, load_text_from_lsj, move_wav_with_txt
+from datetime import timedelta
+from utils import generate_line_srt_by_filename, load_text_from_lsj, move_wav_with_txt, locate_specific_line
 from constant import char_final, translated, base_path, vicious_mockery_cast_path, vicious_mockery_prepare_path
 
 '''
@@ -31,7 +32,7 @@ def distinguish_audio(job_name):
         os.makedirs(vm_path)
     gather_to_be_moved(wav_path, char_wav_path)
     copy_with_file_list(output_file_json, char_wav_path)
-    remove_orin(orin_path, wav_path, orin_tmp_path)
+    # remove_orin(orin_path, wav_path, orin_tmp_path)
     move_visious_mockery(wav_path, vm_path)
 
 
@@ -78,14 +79,14 @@ def gather_to_be_moved(path, job_name):
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
             wav_current = rf"{path}{file}"
-            specific_line = generate_line_srt_by_filename(file)
+            specific_line = generate_line_srt_by_filename(file, True, False)
             if specific_line != '' and specific_line.find('\n') == -1:
                 current = {specific_line: wav_current}
                 to_be_moved.append(current)
                 print(current)
             else:
                 print()
-    output_file_path = rf"{base_path}\{job_name}\need_to_move.list"
+    output_file_path = rf"{base_path}\{job_name}\need_to_move.json"
     with open(output_file_path, 'w') as output_file:
         json.dump(to_be_moved, output_file)
 
@@ -180,7 +181,7 @@ def add_translation(line):
         return line
 
 
-def combine_audio(job_name, iteration):
+def combine_audio(job_name, iteration, file_limit):
     '''
     组合最后的音频和字幕
     有些角色的太多了，所以以1000为界。由于跑得太慢所以没有做完全的自动化处理，手动iteration
@@ -195,12 +196,12 @@ def combine_audio(job_name, iteration):
     current_time = time_gap
     subtitles = pysrt.SubRipFile()
 
-    file_limit = 1000  # 每个输出文件包含的最大文件数量
     output_counter = 1  # 输出文件计数器
 
+    empty_line = []
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
-            if i > file_limit * (iteration - 1):
+            if i >= file_limit * (iteration - 1):
                 wav_current = rf"{path}{file}"
                 audio_segment = AudioSegment.from_file(wav_current, format='wav')
 
@@ -215,8 +216,12 @@ def combine_audio(job_name, iteration):
                 output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
                 order += 1
                 print(order)
-                specific_line = generate_line_srt_by_filename(file)
+                specific_line = locate_specific_line(file)
                 print(specific_line)
+                if specific_line == "":
+                    delta = timedelta(milliseconds=current_time)
+                    empty_line.append({str(delta): file})
+                    print(f"{file}")
 
                 duration = len(audio_segment)
                 subtitle_item = pysrt.SubRipItem()
@@ -229,27 +234,25 @@ def combine_audio(job_name, iteration):
                 current_time += duration + time_gap
 
                 subtitles.append(subtitle_item)
-                if i == file_limit * iteration:
-                    # if (i + 1) % file_limit == 0:
-                    # out_wav_destination = rf"{out_path}out_{output_counter}.wav"
-                    # output_audio.export(out_wav_destination, format="wav")
-                    # output_counter += 1
-                    # output_audio = AudioSegment.silent(duration=0)
-
+                if i == file_limit * iteration-1:
                     out_srt_destination = rf"{out_path}all_{iteration}.srt"
                     subtitles.save(out_srt_destination)
                     print(f"saved srt: {out_srt_destination}")
                     wav_destination = rf"{out_path}all_{iteration}.wav"
                     output_audio.export(wav_destination, format="wav")
                     print(f"saved wav: {wav_destination}")
-                    return
-    # current_time += time_gap * 3
-    # output_audio += AudioSegment.silent(duration=time_gap*3)
 
-    # 处理剩余的文件
-    # if len(output_audio) > 0:
-    #     out_wav_destination = rf"{out_path}out_{output_counter}.wav"
-    #     output_audio.export(out_wav_destination, format="wav")
-    # out_srt_destination = rf"{out_path}out_{output_counter}.srt"
-    # subtitles.save(out_srt_destination)
-    # print(f"saved srt: {out_srt_destination}")
+                    tmp_path = f"{out_path}empty_{iteration}.txt"
+                    with open(tmp_path, 'w') as output_file:
+                        json.dump(empty_line, output_file)
+                    print(f"output empty line to {tmp_path}")
+                    return
+
+        # 处理剩余的文件
+        if len(output_audio) > 0:
+            wav_destination = rf"{out_path}all_{iteration}.wav"
+            output_audio.export(wav_destination, format="wav")
+            print(f"saved wav: {wav_destination}")
+        out_srt_destination = rf"{out_path}all_{iteration}.srt"
+        subtitles.save(out_srt_destination)
+        print(f"saved srt: {out_srt_destination}")
