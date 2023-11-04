@@ -6,7 +6,7 @@ import csv
 import fnmatch
 import shutil
 from constant import speaker_name, speaker_name_ch, output_dialog, tmp_content_json, speaker_code, speaker_code_ch, \
-    spell_gen, spell_json, spell_out_csv, voice_location, voice_meta_file_path
+    spell_gen, spell_json, spell_out_csv, voice_location, voice_meta_file_path, tree, tree_ch
 
 
 def output_dialog_txt_file(output_string):
@@ -305,21 +305,10 @@ def print_text_from_lsj(json_content_list, other_value):
     #
     # print(output_list(file_name, json_content_string))
 
-
 def generate_line_srt_by_filename(filename, with_name, with_ch):
     minsc_ch = {}
     filename = filename[:-4]
     # print(filename)
-    # Parse the XML string to a tree structure
-    file_name = "/Data/Input/english_content.xml"
-    file_name_ch = "/Data/Input/chinese_content.xml"
-    # Get the directory path of the current file
-    xml_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{file_name}"
-    xml_path_ch = f"{os.path.dirname(os.path.abspath(__file__))}\\{file_name_ch}"
-
-    # Parse the XML file
-    tree = ET.parse(xml_path)
-    tree_ch = ET.parse(xml_path_ch)
 
     # Get the root element
     root = tree.getroot()

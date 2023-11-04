@@ -55,11 +55,11 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = "Astarion"
+    char = "Rolan"
     distinguish_audio(char)
     # combine_char_audio(char)
 
-    # combine_audio(char, 1, 1000)
+    combine_audio(char, 1, 1000)
     # combine_audio(char, 2, 1000)
     # combine_audio(char, 3, 1000)
     # combine_audio(char, 4, 1000)

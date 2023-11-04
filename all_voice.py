@@ -6,7 +6,8 @@ from pydub import AudioSegment
 import pysrt
 from datetime import timedelta
 from utils import generate_line_srt_by_filename, load_text_from_lsj, move_wav_with_txt, locate_specific_line
-from constant import char_final, translated, base_path, vicious_mockery_cast_path, vicious_mockery_prepare_path
+from constant import char_final, translated, base_path, vicious_mockery_cast_path, vicious_mockery_prepare_path, tree, \
+    tree_ch
 
 '''
 @Project:        BG3 voice generator
@@ -20,24 +21,30 @@ from constant import char_final, translated, base_path, vicious_mockery_cast_pat
 def distinguish_audio(job_name):
     wav_path = rf"{base_path}{job_name}\wav\\"
     char_wav_path = rf"{base_path}{job_name}\char_wav\\"
-    orin_path = rf"{base_path}Orin\scripts\wav\{job_name}\\"
-    orin_tmp_path = rf"{base_path}{job_name}\orin_wav\\"
     if not os.path.exists(char_wav_path):
         os.makedirs(char_wav_path)
-    if not os.path.exists(orin_tmp_path):
-        os.makedirs(orin_tmp_path)
-    output_file_json = rf"{base_path}\{job_name}\need_to_move.json"
+
+    output_file_file = rf"{base_path}\{job_name}\need_to_move.json"
+
+    gather_to_be_moved(wav_path, output_file_file)
+
+    copy_with_file_list(output_file_file, char_wav_path)
+
+    orin_path = rf"{base_path}Orin\scripts\wav\{job_name}\\"
+    if os.path.exists(orin_path):
+        orin_tmp_path = rf"{base_path}{job_name}\orin_wav\\"
+        if not os.path.exists(orin_tmp_path):
+            os.makedirs(orin_tmp_path)
+        remove_orin(orin_path, wav_path, orin_tmp_path)
+
     vm_path = rf"{base_path}{job_name}\vm_wav\\"
-    if not os.path.exists(vm_path):
-        os.makedirs(vm_path)
-    gather_to_be_moved(wav_path, char_wav_path)
-    copy_with_file_list(output_file_json, char_wav_path)
-    # remove_orin(orin_path, wav_path, orin_tmp_path)
     move_visious_mockery(wav_path, vm_path)
 
 
 def move_visious_mockery(wav_path, target_path):
     print("move visious mockery voiceline")
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
     move_wav_with_txt(vicious_mockery_prepare_path, wav_path, target_path)
     move_wav_with_txt(vicious_mockery_cast_path, wav_path, target_path)
 
@@ -74,20 +81,19 @@ def copy_with_file_list(output_file_path, target_path):
     print(f"copied {count} files")
 
 
-def gather_to_be_moved(path, job_name):
+def gather_to_be_moved(path, output_file_file):
     to_be_moved = []
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
             wav_current = rf"{path}{file}"
-            specific_line = generate_line_srt_by_filename(file, True, False)
+            specific_line = generate_line_srt_by_filename(file, False, True)
             if specific_line != '' and specific_line.find('\n') == -1:
                 current = {specific_line: wav_current}
                 to_be_moved.append(current)
                 print(current)
             else:
                 print()
-    output_file_path = rf"{base_path}\{job_name}\need_to_move.json"
-    with open(output_file_path, 'w') as output_file:
+    with open(output_file_file, 'w') as output_file:
         json.dump(to_be_moved, output_file)
 
 
@@ -197,7 +203,6 @@ def combine_audio(job_name, iteration, file_limit):
     subtitles = pysrt.SubRipFile()
 
     output_counter = 1  # 输出文件计数器
-
     empty_line = []
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
@@ -234,7 +239,7 @@ def combine_audio(job_name, iteration, file_limit):
                 current_time += duration + time_gap
 
                 subtitles.append(subtitle_item)
-                if i == file_limit * iteration-1:
+                if i == file_limit * iteration - 1:
                     out_srt_destination = rf"{out_path}all_{iteration}.srt"
                     subtitles.save(out_srt_destination)
                     print(f"saved srt: {out_srt_destination}")
