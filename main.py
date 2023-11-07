@@ -22,22 +22,27 @@ def generate_spell_files():
 
 def generate_char_script():
     # write_output_json(char_ori, char_final)
-    script_location = rf"{base_path}\Orin\scripts\imposter_npc\\"
-    filename = "WYR_OrinsImpersonation_OrinJournalist.lsj"
+    script_location = rf"{base_path}\Daisy\script\\"
+    # job_list = ['GLO_Elminster_AD_Camp', 'GLO_Elminster_AD_Volo',
+    #             'GLO_Elminster_AD_GaleTressym', 'GLO_Elminster_AD_Gale']
+    job_name = "Daisy_ContingencyLines_Final"
+
+    # for job_name in job_list:
+    filename = f"{job_name}.lsj"
 
     # print_dialog_txt()
 
-    target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
-    script_txt = rf"{target_folder}WYR_OrinsImpersonation_SmithOrin.txt"
-    current_target_path = rf"{base_path}\Orin\scripts\wem\Smith\\"
+    # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
+    script_txt = rf"{script_location}{job_name}.txt"
+    current_target_path = rf"{script_location}\wem\{job_name}\\"
+    #
+    # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
+    # script_txt = f"{script_path}{job_name}.txt"
+    wav_path = rf"{script_location}\wav\\"
 
-    job_name = "Yenna"
-    script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
-    script_txt = f"{script_path}{job_name}.txt"
-    wav_path = rf"{base_path}\Orin\scripts\wav\{job_name}\\"
-    # create_dialog_txt(script_location, filename2)
+    # create_dialog_txt(script_location, filename)
     # copy_audio_wem(script_txt, current_target_path)
-    # generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
+    generate_full_audio_srt_by_file(script_location, script_txt, wav_path, job_name)
     # generate_full_audio()
 
 
@@ -55,7 +60,7 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = "Rolan"
+    char = "daisy"
     distinguish_audio(char)
     # combine_char_audio(char)
 
@@ -65,12 +70,13 @@ def generate_all_files():
     # combine_audio(char, 4, 1000)
     # combine_audio(char, 5, 1000)
     # combine_audio(char, 6, 1000)
-
+    # combine_audio(char, 7, 1000)
+    # combine_audio(char, 8, 1000)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # generate_banter_files()
     # generate_other_files()
-    # generate_char_script()
+    generate_char_script()
     # generate_spell_files()
-    generate_all_files()
+    # generate_all_files()

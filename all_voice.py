@@ -91,10 +91,9 @@ def gather_to_be_moved(path, output_file_file):
                 current = {specific_line: wav_current}
                 to_be_moved.append(current)
                 print(current)
-            else:
-                print()
     with open(output_file_file, 'w') as output_file:
         json.dump(to_be_moved, output_file)
+        print(f"output list to {output_file_file}")
 
 
 def combine_char_audio(job_name):

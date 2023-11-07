@@ -38,8 +38,8 @@ def create_dialog_txt(script_location, filename):
     sommon_f = open(f"{script_location}{filename}", 'r', encoding='utf-8')
     sommon_content = json.loads(sommon_f.read())
     # print(sommon_content)
-    sommon_json_content_list = load_text_from_lsj(sommon_content)
-    # print(sommon_content)
+    sommon_json_content_list = load_text_from_lsj(sommon_content, False)
+    print(sommon_json_content_list)
     out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
     sommon_f.close()
 
@@ -196,8 +196,11 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
 
     with open(script_txt, 'r') as file:
         lines = file.readlines()
-    even_lines = list(set(lines[1::2]))
-    # print(even_lines)
+    # even_lines = list(set(lines[1::2])
+    even_lines = lines[1::2]
+    print(lines)
+    print(even_lines)
+
     for i in range(0, len(even_lines)):
         # for i in range(0, len(lines), 2):
         matches = []
@@ -229,7 +232,7 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
         # print(matches)
         for match in matches:
             # print(match)
-            specific_line = generate_line_srt_by_filename(match['content'])
+            specific_line = generate_line_srt_by_filename(match['content'], True, True)
             # specific_line = line1.split('<br>')[0]
             # for ending in [" v3", " v2", " v1"]:
             #     if specific_line.endswith(ending):

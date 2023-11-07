@@ -235,7 +235,7 @@ def write_output_json(input_file, output_file):
         json.dump(json_data, f_out, ensure_ascii=False)
 
 
-def load_text_from_lsj(content):
+def load_text_from_lsj(content, need_note):
     json_content_list = []
     current_node = {}
     for node in content["save"]["regions"]["dialog"]["nodes"][0]['node']:
@@ -256,19 +256,24 @@ def load_text_from_lsj(content):
                                 "contentuid": contentuid,
                             })
                             # print(line_list)
-                        if "editorData" in node:
-                            for data in node['editorData'][0]['data']:
-                                if "key" in data and "value" in data['key']:
-                                    if data['key']['value'] == "NodeContext" and data['val']['value'] != "":
-                                        current_node = {
-                                            "content_list": line_list,
-                                            "note": data['val']['value']
-                                        }
+                        if need_note:
+                            if "editorData" in node:
+                                for data in node['editorData'][0]['data']:
+                                    if "key" in data and "value" in data['key']:
+                                        if data['key']['value'] == "NodeContext" and data['val']['value'] != "":
+                                            current_node = {
+                                                "content_list": line_list,
+                                                "note": data['val']['value']
+                                            }
+                            else:
+                                current_node = {
+                                    "content_list": line_list,
+                                }
                         else:
                             current_node = {
                                 "content_list": line_list,
                             }
-                            print(current_node)
+                        print(current_node)
                     else:
                         contentuid = ""
 
