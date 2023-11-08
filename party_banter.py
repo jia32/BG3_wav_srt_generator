@@ -71,8 +71,122 @@ def output_dialog_order(step):
         elif step == 2:
             random_order(json_content)
         # 这一步可以手动调整前后顺序
-        else:
+        elif step == 3:
             generate_final_json(json_content)
+        elif step == 4:
+            print_dialog_output(json_content)
+        elif step == 5:
+            compare_dialog()
+
+def compare_dialog():
+    file_list_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_voice_order_list}"
+    with open(file_list_path, "r", encoding="utf-8") as file:
+        file_list = json.load(file)
+    current_list =[
+            "Shadowheart_Gale_Refugees",
+            "Wyll_Astarion_WyrmsRock",
+            "Wyll_Jaheira_BasiliskGate",
+            "Laezel_Wyll_FlamingFist",
+            "Gale_Astarion_Tabernacle",
+            "Gale_Wyll_BaldursMouth",
+            "Karlach_Shadowheart_BaldursMouth",
+            "Minthara_Shadowheart_FelogyrsFireworks",
+            "Halsin_Karlach_SorcerousSundries",
+            "Minthara_Shadowheart_SorcerousSundries",
+            "Gale_Karlach_SorcerousSundries",
+            "Minsc_Wyll_Bonecloaks",
+            "Karlach_Laezel_HouseOfHope",
+            "Shadowheart_Gale_BlushingMermaid",
+            "Halsin_Karlach_BlushingMermaid",
+            "Astarion_Laezel_BlushingMermaid",
+            "Minthara_Astarion_CazadorsPalace",
+            "Minsc_Jaheira_CazadorsPalace",
+            "Gale_Laezel_CazadorsPalace",
+            "Minsc_Karlach_UndercityRuins",
+            "Wyll_Jaheira_UndercityRuins",
+            "Minsc_Jaheira_GeneralSewers",
+            "Astarion_Gale_GeneralSewers",
+            "Gale_Jaheira_BhaalTemple",
+            "Astarion_Laezel_BhaalTemple",
+            "Karlach_Minsc_BhaalTemple",
+            "Shadowheart_Wyll_BhaalTemple",
+            "Halsin_Laezel_CountingHouse",
+            "Karlach_Wyll_CountingHouse",
+            "Karlach_Wyll_NorthAlleys",
+            "Wyll_Jaheira_GuildhallEntrance",
+            "Laezel_Minthara_Guildhall",
+            "Jaheira_Minsc_Guildhall",
+            "Astarion_Shadowheart_Guildhall",
+            "Wyll_Gale_Guildhall",
+            "Laezel_Wyll_Dangers",
+            "Wyll_Karlach_SouthDocks",
+            "Karlach_Shadowheart_BloombridgePark",
+            "Astarion_Wyll_BloomridgePark",
+            "Karlach_Jaheira_WaterqueensHouse",
+            "Laezel_Karlach_OskarsBeloved",
+            "Astarion_Jaheira_OskarsBeloved",
+            "Laezel_Gale_BloomridgePark",
+            "Minsc_Jaheira_BloomridgePark",
+            "Gale_Shadowheart_SteelWatch",
+            "Minthara_Wyll_ROM_Act3_001",
+            "Minthara_Wyll_ROM_Act3_002",
+            "Astarion_Wyll_ROM_Act3",
+            "Minsc_Wyll_ROM_Act3",
+            "Wyll_Minthara_ROM_Act3_001",
+            "Astarion_Minthara_ROM_Act3",
+            "Gale_Minthara_ROM_Act3",
+            "Minthara_Astarion_ROM_Act3",
+            "Wyll_Astarion_ROM_Act3_001",
+            "Halsin_Astarion_ROM_Act3_Spawn",
+            "Minthara_Astarion_ROM_Act3_001",
+            "Gale_Astarion_ROM_Act3_Ascendant",
+            "Astarion_Karlach_ROM_Act3",
+            "Minthara_Karlach_ROM_Act3_002",
+            "Gale_Karlach_ROM_Act3",
+            "Wyll_Karlach_ROM_Act3_001",
+            "Minthara_Laezel_ROM_Act3",
+            "Minthara_Laezel_ROM_Act3_001",
+            "Gale_Laezel_ROM_Act3",
+            "Wyll_Shadowheart_ROM_Act3_001",
+            "Minthara_Shadowheart_ROM_Act3_002",
+            "Gale_Shadowheart_ROM_Act3_Shar",
+            "Wyll_Gale_ROM_Act3_001",
+            "Wyll_Minsc_MorphicPool",
+            "Shadowheart_Gale_MorphicPool",
+            "Gale_Wyll_MorphicPool",
+            "Halsin_Karlach_MorphicPool",
+            "Jaheira_Shadowheart_MorphicPool",
+            "Karlach_Shadowheart_MorphicPool",
+            "Laezel_Shadowheart_MorphicPool",
+            "Minsc_Karlach_MorphicPool",
+            "Minthara_Laezel_MorphicPool"
+            ]
+
+    # 使用列表推导式找出list1中存在而list2中不存在的元素
+    not_in_list2 = [x for x in file_list if x not in current_list]
+
+    # 打印结果
+    print(not_in_list2)
+    print(len(not_in_list2))
+    not_in_list = f"{os.path.dirname(os.path.abspath(__file__))}\\Data\\Output\\all\\Act3\\need_to_check.json"
+    with open(not_in_list, 'w') as output_file:
+        json.dump(not_in_list2, output_file)
+
+def print_dialog_output(json_content):
+    # file_list_path = f"{os.path.dirname(os.path.abspath(__file__))}\\Data\\Output\\all\\Act3\\need_to_check.json"
+
+    file_list_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_voice_order_list}"
+    with open(file_list_path, "r", encoding="utf-8") as file:
+        file_list = json.load(file)
+    # print(json_content)
+    for title in file_list:
+        for dialog in json_content['pb']:
+            if dialog['title'] == title:
+                print(title)
+                for sentence in dialog['dialog']:
+                    # if "wem_location" in sentence:
+                    print(f"{sentence['ch']}\n{sentence['eng']}".replace("<i>", "").replace("</i>", ""))
+                print()
 
 
 def list_wem_filename(content_json):
@@ -171,7 +285,9 @@ def combine_audio_sub():
                 subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
                 subtitle_item.index = order
                 # Set the text of the subtitle item
-                subtitle_item.text = f"{sentence['ch']}\n{sentence['eng']}".replace("<i>", "").replace("</i>", "")
+                subtitle_item.text = f"{sentence['ch']}\n{sentence['eng']}"\
+                    .replace("<i>", "").replace("</i>", "")\
+                    .replace("<br>", "").replace("</br>", "")
 
                 # Append the subtitle item to the subtitles list
                 subtitles.append(subtitle_item)

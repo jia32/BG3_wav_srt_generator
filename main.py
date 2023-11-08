@@ -47,10 +47,12 @@ def generate_char_script():
 
 
 def generate_banter_files():
-    generate_script()  # 加载文件夹里的事件脚本
+    # generate_script()  # 加载文件夹里的事件脚本
     # output_dialog_order(1) # 复制目标wem文件
-    # output_dialog_order(2) # 调整对话的顺序，手动加random形式
+    # output_dialog_order(2)  # 调整对话的顺序，手动加random形式
     # output_dialog_order(3) # 根据file_list，生成输出的脚本
+    output_dialog_order(4) # 打印文本，对比一下
+    # output_dialog_order(5)
     # # 需要手动将wem转换为wav
     # combine_audio_sub()  # 合成音频和字幕
 
@@ -61,7 +63,7 @@ def generate_other_files():
 
 def generate_all_files():
     char = "daisy"
-    distinguish_audio(char)
+    # distinguish_audio(char)
     # combine_char_audio(char)
 
     combine_audio(char, 1, 1000)
@@ -73,10 +75,11 @@ def generate_all_files():
     # combine_audio(char, 7, 1000)
     # combine_audio(char, 8, 1000)
 
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    # generate_banter_files()
+    generate_banter_files()
     # generate_other_files()
-    generate_char_script()
+    # generate_char_script()
     # generate_spell_files()
     # generate_all_files()
