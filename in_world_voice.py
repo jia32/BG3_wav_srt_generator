@@ -6,9 +6,8 @@ from pydub import AudioSegment
 import pysrt
 import random
 
-from utils import load_text_from_lsj, print_text_from_lsj, generate_line_srt_by_filename, find_through_metafile
-from constant import karlach_wem, karlach_tmp, karlach_directory, karlach_wav, voice_location, speaker_code, \
-    speaker_code_ch
+from utils import *
+from constant import *
 
 '''
 @Project:        BG3 voice generator
@@ -34,27 +33,28 @@ def create_dialog_txt(script_location, filename):
     # for root, dirs, files in os.walk(script_location):
     #     for filename in files:
     # current_path = os.path.join(root, filename)
-
     sommon_f = open(f"{script_location}{filename}", 'r', encoding='utf-8')
     sommon_content = json.loads(sommon_f.read())
-    # print(sommon_content)
-    sommon_json_content_list = load_text_from_lsj(sommon_content, False)
-    print(sommon_json_content_list)
-    out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
     sommon_f.close()
 
-    # if value is not None:
-    #     response_f = open(response_script, 'r', encoding='utf-8')
-    #     response_content = json.loads(response_f.read())
-    #     response_json_content_list = load_text_from_lsj(response_content)
-    #     out_string += print_text_from_lsj(response_json_content_list, f"response of {value}")
-    #     response_f.close()
+    need_note = "PointNClick" in filename
+    # print(sommon_content)
+    sommon_json_content_list = load_text_from_lsj(sommon_content, need_note)
+    print(sommon_json_content_list)
+
     target_location = f"{script_location}{filename[:-4]}.txt"
-    if not os.path.exists(karlach_directory):
-        os.makedirs(karlach_directory)
-    out_string = out_string.rstrip("\n")
-    with open(target_location, "w", encoding="utf-8") as output_txt:
-        output_txt.write(out_string)
+
+    if need_note:
+        # write_multi_text_from_lsj(sommon_json_content_list, script_location)
+        # generate_file_order(script_location)
+        double_check_file_order(script_location)
+    else:
+        out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
+        if not os.path.exists(karlach_directory):
+            os.makedirs(karlach_directory)
+        out_string = out_string.rstrip("\n")
+        with open(target_location, "w", encoding="utf-8") as output_txt:
+            output_txt.write(out_string)
 
 
 def print_dialog_txt():
@@ -176,6 +176,50 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
     :param wav_path:
     :return:
     '''
+
+    if "PointNClick" not in job_name:
+        with open(script_txt, 'r') as file:
+            lines = file.readlines()
+        # even_lines = list(set(lines[1::2])
+        # even_lines = lines[1::2]
+        print(lines)
+        # print(even_lines)
+        generate_wav_srt_by_txt(lines, script_path, wav_path, job_name, True, True)
+    else:
+        with open(script_txt, 'r') as file:
+            file_name_list = json.load(file)
+        file_order_path = rf"{script_path}final_order.json"
+        with open(file_order_path, 'r') as file:
+            file_order_list = json.load(file)
+        result = {}
+
+        # 遍历 list1 中的字典
+        for item1 in file_order_list:
+            for key, strings in item1.items():
+                lines = []
+
+                # 遍历字符串列表
+                for string in strings:
+
+                    # 在 list2 中找到匹配的字典
+                    for item2 in file_name_list:
+
+                        if string in item2:
+                            paths = item2[string]
+                            # 遍历路径列表并逐行读取文本内容
+                            for path in paths:
+                                txt_path =rf"{script_path}{path}"
+                                print(path)
+                                with open(txt_path, "r") as file:
+                                    lines += file.readlines()
+                generate_wav_srt_by_txt(lines, script_path, wav_path, key, False, False)
+                print(key)
+                # print(lines)
+
+
+def generate_wav_srt_by_txt(lines, script_path, wav_path, job_name, with_speaker, with_ch):
+    even_lines = lines[1::2]
+
     wem_meta = {}
 
     time_gap = 600
@@ -193,14 +237,6 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
     subtitles = pysrt.SubRipFile()
     order = 1
     count = 0
-
-    with open(script_txt, 'r') as file:
-        lines = file.readlines()
-    # even_lines = list(set(lines[1::2])
-    even_lines = lines[1::2]
-    print(lines)
-    print(even_lines)
-
     for i in range(0, len(even_lines)):
         # for i in range(0, len(lines), 2):
         matches = []
@@ -232,7 +268,7 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
         # print(matches)
         for match in matches:
             # print(match)
-            specific_line = generate_line_srt_by_filename(match['content'], True, True)
+            specific_line = generate_line_srt_by_filename(match['content'], with_speaker, with_ch)
             # specific_line = line1.split('<br>')[0]
             # for ending in [" v3", " v2", " v1"]:
             #     if specific_line.endswith(ending):

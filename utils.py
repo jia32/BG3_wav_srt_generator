@@ -294,7 +294,6 @@ def print_text_from_lsj(json_content_list, other_value):
         # if "negative" in line['note']:
         if "note" in line:
             print(line['note'])
-        # print(f"{other_value}")
         for sentence in json_content_string:
             latin = sentence['eng'].split('<br>')[0]
             for ending in [" v3", " v2", " v1"]:
@@ -309,6 +308,99 @@ def print_text_from_lsj(json_content_list, other_value):
     # output_string += generate_output_list("txt: ", json_content_string)
     #
     # print(output_list(file_name, json_content_string))
+
+
+def write_multi_text_from_lsj(json_content_list, out_path):
+    '''
+    Output one lst into different intermediate txt with different note
+    :param json_content_list:
+    :param out_path:
+    :return:
+    '''
+    file_count = 0
+    note_count_dict = []
+
+    unique_list = []
+    for d in json_content_list:
+        if d['content_list'] not in unique_list:
+            unique_list.append(d)
+
+    for line in unique_list:
+        json_content_string = filled_string(line['content_list'])
+        note = line['note'].strip()
+        out_string = ""
+
+        for sentence in json_content_string:
+            latin = sentence['eng'].split('<br>')[0]
+            for ending in [" v3", " v2", " v1"]:
+                if latin.endswith(ending):
+                    latin = latin[:-len(ending)]
+            print(f"{latin}")
+            print(f"{sentence['contentuid']}")
+            out_string += f"{latin}\n{sentence['contentuid']}\n"
+        print()
+        file_count += 1
+        file_name = f"{file_count}.txt"
+        print(note_count_dict)
+        # 检查 note_count_dict 中是否存在特定的键
+        item = next((item for item in note_count_dict if note in item), None)
+
+        if item:
+            # 键已存在，执行相应操作
+            item[note].append(file_name)
+        else:
+            # 键不存在，创建新的键值对
+            note_count_dict.append({note: [file_name]})
+
+        out_string = out_string.rstrip("\n")
+        target_path = f"{out_path}{file_name}"
+        # with open(target_path, "w", encoding="utf-8") as output_txt:
+        #     output_txt.write(out_string)
+        # print(f"writing to {target_path}")
+
+    target_path = f"{out_path}file_name_dict.json"
+    with open(target_path, "w", encoding="utf-8") as output_txt:
+        json.dump(note_count_dict, output_txt, ensure_ascii=False)
+    print(f"writing to {target_path}")
+    return target_path
+
+
+def generate_file_order(out_path):
+    input_path = f"{out_path}file_name_dict.json"
+    with open(input_path, 'r', encoding='utf-8') as f_in:
+        note_count_dict = json.load(f_in)
+
+    keys_list = []
+
+    for item in note_count_dict:
+        for key in item.keys():
+            # if "Narrative Arc Start" not in key and "stuck" in key:
+            keys_list.append(key)
+
+    target_path = f"{out_path}file_oder.txt"
+    with open(target_path, "w") as file:
+        for key in keys_list:
+            file.write(key + "\n")
+    print(keys_list)
+
+
+def double_check_file_order(out_path):
+    all_file = f"{out_path}file_oder.txt"
+    manual_order_file = f"{out_path}final_order.json"
+
+    with open(all_file, 'r', encoding='utf-8') as all_f_in:
+        lines = all_f_in.readlines()
+    with open(manual_order_file, 'r', encoding='utf-8') as manual_f_in:
+        final_order = json.load(manual_f_in)
+
+    final_order_count = 0
+    for item in final_order:
+        for value in item.values():
+            final_order_count += len(value)
+
+    print(final_order_count)
+    print(len(lines))
+
 
 def generate_line_srt_by_filename(filename, with_name, with_ch):
     minsc_ch = {}
