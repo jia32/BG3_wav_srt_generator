@@ -5,9 +5,8 @@ import fnmatch
 from pydub import AudioSegment
 import pysrt
 from datetime import timedelta
-from utils import generate_line_srt_by_filename, load_text_from_lsj, move_wav_with_txt, locate_specific_line
-from constant import char_final, translated, base_path, vicious_mockery_cast_path, vicious_mockery_prepare_path, tree, \
-    tree_ch
+from utils import *
+from constant import *
 
 '''
 @Project:        BG3 voice generator
@@ -39,6 +38,15 @@ def distinguish_audio(job_name):
 
     vm_path = rf"{base_path}{job_name}\vm_wav\\"
     move_visious_mockery(wav_path, vm_path)
+    death_folder = rf"{base_path}{job_name}\death_wav\\"
+    move_death(wav_path, death_folder)
+
+
+def move_death(wav_path, target_path):
+    print("move death voiceline")
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+    move_wav_with_txt(death_path, wav_path, target_path)
 
 
 def move_visious_mockery(wav_path, target_path):

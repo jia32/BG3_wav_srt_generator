@@ -354,9 +354,9 @@ def write_multi_text_from_lsj(json_content_list, out_path):
 
         out_string = out_string.rstrip("\n")
         target_path = f"{out_path}{file_name}"
-        # with open(target_path, "w", encoding="utf-8") as output_txt:
-        #     output_txt.write(out_string)
-        # print(f"writing to {target_path}")
+        with open(target_path, "w", encoding="utf-8") as output_txt:
+            output_txt.write(out_string)
+        print(f"writing to {target_path}")
 
     target_path = f"{out_path}file_name_dict.json"
     with open(target_path, "w", encoding="utf-8") as output_txt:
@@ -385,21 +385,88 @@ def generate_file_order(out_path):
 
 
 def double_check_file_order(out_path):
+    # Step 1: check if total condition matches
     all_file = f"{out_path}file_oder.txt"
     manual_order_file = f"{out_path}final_order.json"
+    filename_dict = f"{out_path}file_name_dict.json"
 
     with open(all_file, 'r', encoding='utf-8') as all_f_in:
         lines = all_f_in.readlines()
     with open(manual_order_file, 'r', encoding='utf-8') as manual_f_in:
         final_order = json.load(manual_f_in)
+    with open(filename_dict, 'r', encoding='utf-8') as filename_f_in:
+        filename_dict_json = json.load(filename_f_in)
 
     final_order_count = 0
     for item in final_order:
         for value in item.values():
             final_order_count += len(value)
 
-    print(final_order_count)
-    print(len(lines))
+    print(
+        f"No. of scenario matches=={final_order_count == len(lines)}, scenario in final={final_order_count}, scenario from input={len(lines)}")
+    if final_order_count != len(lines):
+        check_dict_mismatch(final_order, filename_dict_json)
+
+    # Step 2: check if no of files matches
+    no_lines_in_final = 0
+    no_lines_from_dict = 0
+    final_with_count = []
+
+    for item in final_order:
+        for list_scenarios in item.values():
+            for scenario in list_scenarios:
+                scenario_count = 0
+                for filename_dict_node in filename_dict_json:
+                    if scenario in filename_dict_node:
+                        for tmp_filename in filename_dict_node[scenario]:
+                            txt_path = f"{out_path}{tmp_filename}"
+                            with open(txt_path, 'r', encoding='utf-8') as tmp_txt:
+                                current_txt = tmp_txt.readlines()
+                            no_lines_in_final += len(current_txt)
+                            scenario_count += len(current_txt)
+                # print({scenario:scenario_count})
+
+    for item in filename_dict_json:
+        for value in item.values():
+            for tmp_filename in value:
+                txt_path = f"{out_path}{tmp_filename}"
+                with open(txt_path, 'r', encoding='utf-8') as tmp_txt:
+                    current_txt = tmp_txt.readlines()
+                no_lines_from_dict += len(current_txt)
+
+    print(
+        f"No. of voicefile matches=={no_lines_in_final == no_lines_from_dict}, scenario in final={no_lines_in_final}, scenario from input={no_lines_from_dict}")
+
+
+
+def check_dict_mismatch(file1_data, file2_data):
+    # 遍历文件1中的字典列表
+    for file1_dict in file1_data:
+        for case, subcases in file1_dict.items():
+            # 检查文件1的子案例是否在文件2中有对应
+            for subcase in subcases:
+                found = False
+                for file2_dict in file2_data:
+                    if subcase in file2_dict:
+                        found = True
+                        break
+                if not found:
+                    print(f"File 1: Case {case}, Subcase {subcase} has no corresponding match in File 2")
+
+    # 遍历文件2中的字典列表
+    for file2_dict in file2_data:
+        for subcase, paths in file2_dict.items():
+            # 检查文件2的子案例是否在文件1中有对应
+            found = False
+            for file1_dict in file1_data:
+                for subcases in file1_dict.values():
+                    if subcase in subcases:
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                print(f"File 2: Subcase {subcase}, Path {paths} has no corresponding match in File 1")
 
 
 def generate_line_srt_by_filename(filename, with_name, with_ch):

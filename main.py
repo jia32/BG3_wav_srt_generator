@@ -22,10 +22,9 @@ def generate_spell_files():
 
 def generate_char_script():
     # write_output_json(char_ori, char_final)
-    script_location = rf"{base_path}\Halsin\script\\"
-    # job_list = ['GLO_Elminster_AD_Camp', 'GLO_Elminster_AD_Volo',
-    #             'GLO_Elminster_AD_GaleTressym', 'GLO_Elminster_AD_Gale']
-    job_name = "GLO_BG_PointNClick_Halsin_NarrativeArc_Start"
+    script_location = rf"{base_path}\Tav\voice5\script\\"
+    # job_list = ['GLO_PAD_CombatReact_PartyDeath', 'GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start']
+    job_name = "GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start"
 
     # for job_name in job_list:
     filename = f"{job_name}.lsj"
@@ -34,16 +33,16 @@ def generate_char_script():
 
     # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
     # script_txt = rf"{script_location}{job_name}.txt"
-    script_txt = rf"{script_location}file_name_dict.json"
-    current_target_path = rf"{script_location}\wem\{job_name}\\"
+    # script_txt = rf"{script_location}file_name_dict.json"
+    # current_target_path = rf"{script_location}\wem\{job_name}\\"
     #
     # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
     # script_txt = f"{script_path}{job_name}.txt"
-    wav_path = rf"{script_location}\wav\\"
+    # wav_path = rf"{script_location}\wav\\"
 
-    # create_dialog_txt(script_location, filename)
+    create_dialog_txt(script_location, filename)
     # copy_audio_wem(script_txt, current_target_path)
-    generate_full_audio_srt_by_file(script_location, script_txt, wav_path, job_name)
+    # generate_full_audio_srt_by_file(script_location, script_txt, wav_path, job_name)
     # generate_full_audio()
 
 
@@ -63,13 +62,13 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = "Halsin"
-    # distinguish_audio(char)
+    char = r"Tav\voice5"
+    distinguish_audio(char)
     # combine_char_audio(char)
-
-    combine_audio(char, 1, 1000)
-    combine_audio(char, 2, 1000)
-    combine_audio(char, 3, 1000)
+    #
+    # combine_audio(char, 1, 1000)
+    # combine_audio(char, 2, 1000)
+    # combine_audio(char, 3, 1000)
     # combine_audio(char, 4, 1000)
     # combine_audio(char, 5, 1000)
     # combine_audio(char, 6, 1000)
