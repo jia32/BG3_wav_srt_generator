@@ -384,6 +384,32 @@ def generate_file_order(out_path):
     print(keys_list)
 
 
+def generate_partial_final_txt(out_path):
+    job_name = "sneak"
+    out_file = f"{out_path}{job_name}.json"
+    filename_dict = f"{out_path}file_name_dict.json"
+
+    with open(filename_dict, 'r', encoding='utf-8') as filename_f_in:
+        filename_dict_json = json.load(filename_f_in)
+
+    out_list = find_dicts_with_key(job_name, filename_dict_json)
+
+    # print(len(out_list))
+    with open(out_file, "w", encoding="utf-8") as f_out:
+        json.dump(out_list, f_out, ensure_ascii=False)
+        print(f"writing {job_name} to {out_file}")
+
+
+def find_dicts_with_key(string, dict_list):
+    matching_dicts = []
+    for dictionary in dict_list:
+        for key in dictionary.keys():
+            if string.lower() in key.lower():
+                matching_dicts.append(dictionary)
+                break  # 跳出当前循环，继续下一个字典的遍历
+    return matching_dicts
+
+
 def double_check_file_order(out_path):
     # Step 1: check if total condition matches
     all_file = f"{out_path}file_oder.txt"
@@ -436,7 +462,6 @@ def double_check_file_order(out_path):
 
     print(
         f"No. of voicefile matches=={no_lines_in_final == no_lines_from_dict}, scenario in final={no_lines_in_final}, scenario from input={no_lines_from_dict}")
-
 
 
 def check_dict_mismatch(file1_data, file2_data):

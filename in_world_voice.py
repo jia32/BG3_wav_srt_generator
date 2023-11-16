@@ -45,9 +45,10 @@ def create_dialog_txt(script_location, filename):
     target_location = f"{script_location}{filename[:-4]}.txt"
 
     if need_note:
-        # write_multi_text_from_lsj(sommon_json_content_list, script_location)
-        # generate_file_order(script_location)
-        double_check_file_order(script_location)
+        write_multi_text_from_lsj(sommon_json_content_list, script_location)
+        generate_file_order(script_location)
+        # generate_partial_final_txt(script_location)
+        # double_check_file_order(script_location)
     else:
         out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
         if not os.path.exists(karlach_directory):
@@ -170,13 +171,12 @@ def copy_audio_wem(script_txt, current_target_path):
 
 
 def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name):
-    '''
+    """
     根据中间文件txt，生成字幕及音频
     :param script_path:
     :param wav_path:
     :return:
-    '''
-
+    """
     if "PointNClick" not in job_name:
         with open(script_txt, 'r') as file:
             lines = file.readlines()
@@ -188,7 +188,7 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
     else:
         with open(script_txt, 'r') as file:
             file_name_list = json.load(file)
-        file_order_path = rf"{script_path}final_order.json"
+        file_order_path = rf"{script_path}sneak.json"
         with open(file_order_path, 'r') as file:
             file_order_list = json.load(file)
         result = {}

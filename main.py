@@ -33,16 +33,20 @@ def generate_char_script():
 
     # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
     # script_txt = rf"{script_location}{job_name}.txt"
-    # script_txt = rf"{script_location}file_name_dict.json"
+    script_txt = rf"{script_location}file_name_dict.json"
     # current_target_path = rf"{script_location}\wem\{job_name}\\"
     #
     # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
     # script_txt = f"{script_path}{job_name}.txt"
-    # wav_path = rf"{script_location}\wav\\"
+    wav_path = rf"{script_location}\wav\\"
 
-    create_dialog_txt(script_location, filename)
+    # create_dialog_txt(script_location, filename)
+    # Optional operations:
+    # generate_partial_final_txt(script_location)
+    # double_check_file_order(script_location)
+
     # copy_audio_wem(script_txt, current_target_path)
-    # generate_full_audio_srt_by_file(script_location, script_txt, wav_path, job_name)
+    generate_full_audio_srt_by_file(script_location, script_txt, wav_path, job_name)
     # generate_full_audio()
 
 
@@ -62,7 +66,7 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = r"Tav\voice5"
+    char = r"Tav/voice5"
     distinguish_audio(char)
     # combine_char_audio(char)
     #
