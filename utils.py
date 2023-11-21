@@ -384,20 +384,21 @@ def generate_file_order(out_path):
     print(keys_list)
 
 
-def generate_partial_final_txt(out_path):
-    job_name = "sneak"
-    out_file = f"{out_path}{job_name}.json"
-    filename_dict = f"{out_path}file_name_dict.json"
+def generate_partial_final_txt(out_path, key_word):
+    out_file = f"{out_path}{key_word}.json"
+    filename_dict = f"{out_path}final_order.json"
 
     with open(filename_dict, 'r', encoding='utf-8') as filename_f_in:
-        filename_dict_json = json.load(filename_f_in)
+        final_order_json = json.load(filename_f_in)
 
-    out_list = find_dicts_with_key(job_name, filename_dict_json)
+    # out_list = find_dicts_with_key(job_name, final_order_json)
+    out_list = find_dicts_with_value_in_list(key_word, final_order_json)
 
-    # print(len(out_list))
+    # print(out_list)
+    print(len(out_list))
     with open(out_file, "w", encoding="utf-8") as f_out:
         json.dump(out_list, f_out, ensure_ascii=False)
-        print(f"writing {job_name} to {out_file}")
+        print(f"writing {key_word} to {out_file}")
 
 
 def find_dicts_with_key(string, dict_list):
@@ -408,6 +409,31 @@ def find_dicts_with_key(string, dict_list):
                 matching_dicts.append(dictionary)
                 break  # 跳出当前循环，继续下一个字典的遍历
     return matching_dicts
+
+
+def find_dicts_with_value_in_list(input_string, dict_list):
+    lowercase_dict_list = []
+
+    for d in dict_list:
+        lowercase_dict = {}
+        for key, value in d.items():
+            if isinstance(value, str):
+                lowercase_dict[key] = value.lower()
+            elif isinstance(value, list):
+                lowercase_dict[key] = [v.lower() for v in value]
+        lowercase_dict_list.append(lowercase_dict)
+
+    filtered_list = []
+
+    for d in lowercase_dict_list:
+        matching_values = []
+        for value in d.values():
+            matching_values.extend([v for v in value if input_string.lower() in v.lower()])
+        if matching_values:
+            filtered_dict = {key: matching_values for key in d.keys()}
+            filtered_list.append(filtered_dict)
+
+    return filtered_list
 
 
 def double_check_file_order(out_path):
@@ -494,7 +520,7 @@ def check_dict_mismatch(file1_data, file2_data):
                 print(f"File 2: Subcase {subcase}, Path {paths} has no corresponding match in File 1")
 
 
-def generate_line_srt_by_filename(filename, with_name, with_ch):
+def generate_line_srt_by_filename(filename, with_name, with_ch, translation_json):
     minsc_ch = {}
     filename = filename[:-4]
     # print(filename)
@@ -537,6 +563,10 @@ def generate_line_srt_by_filename(filename, with_name, with_ch):
             result_en = ""
 
         if not with_ch:
+            if translation_json != {}:
+                result_ch = translation_json[result_en]
+                return f"{result_ch}\n{result_en}"
+
             return f"{result_en}"
 
         content_elem_ch = root_ch.find(f"./content[@contentuid='{contentuid}']")
@@ -757,7 +787,7 @@ def find_contentuid_within_lsj(wav_filename, lsj_path):
 
 def find_text_by_uid(contentuid_list):
     for contentuid in contentuid_list:
-        result = generate_line_srt_by_filename(f"123_{contentuid}.wav", False, True)
+        result = generate_line_srt_by_filename(f"123_{contentuid}.wav", False, True,{})
         if result != "":
             return result
 

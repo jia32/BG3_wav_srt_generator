@@ -58,6 +58,29 @@ def create_dialog_txt(script_location, filename):
             output_txt.write(out_string)
 
 
+def create_dialog_txt_only(script_location):
+    final_txt = []
+    for i in range(1, 95):
+        txt_location = f"{script_location}{i}.txt"
+        print(f"loading from {txt_location}")
+
+        with open(txt_location, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+        for j in range(0, len(lines), 2):
+            line1 = lines[j].strip().replace("<i>", "").replace("</i>", "") \
+                .replace("<br>", "").replace("<b>", "").replace("</b>", "")
+            print(line1)
+            final_txt.append(line1)
+
+    target_location = f"{script_location}all_txt.txt"
+    final_txt = list(set(final_txt))
+
+    with open(target_location, "w", encoding="utf-8") as output_txt:
+        output_txt.write('\n'.join(final_txt))
+        print(f"Writing lines to {target_location}")
+
+
 def print_dialog_txt():
     with open(karlach_tmp, "r", encoding="utf-8") as file:
         lines = file.readlines()
@@ -170,10 +193,13 @@ def copy_audio_wem(script_txt, current_target_path):
     print(f"copied {count} files")
 
 
-def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name):
+def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, job_name):
     """
     根据中间文件txt，生成字幕及音频
-    :param script_path:
+    :param job_name:
+    :param dict_path:
+    :param base_path:
+    :param script_txt:
     :param wav_path:
     :return:
     """
@@ -184,40 +210,34 @@ def generate_full_audio_srt_by_file(script_path, script_txt, wav_path, job_name)
         # even_lines = lines[1::2]
         print(lines)
         # print(even_lines)
-        generate_wav_srt_by_txt(lines, script_path, wav_path, job_name, True, True)
+        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, True, True)
     else:
+        translation_json = {}
+        if "GenericOrigin" in job_name:
+            translation_json = tav_pnc_translation
         with open(script_txt, 'r') as file:
-            file_name_list = json.load(file)
-        file_order_path = rf"{script_path}sneak.json"
-        with open(file_order_path, 'r') as file:
-            file_order_list = json.load(file)
+            working_scenario_list = json.load(file)
+        with open(dict_path, 'r') as file:
+            dict_json = json.load(file)
         result = {}
 
-        # 遍历 list1 中的字典
-        for item1 in file_order_list:
-            for key, strings in item1.items():
+        for need_to_work in working_scenario_list:
+            for key, strings in need_to_work.items():
                 lines = []
-
-                # 遍历字符串列表
                 for string in strings:
-
-                    # 在 list2 中找到匹配的字典
-                    for item2 in file_name_list:
-
-                        if string in item2:
-                            paths = item2[string]
-                            # 遍历路径列表并逐行读取文本内容
+                    out_list = find_dicts_with_key(string, dict_json)
+                    for tmp_dict in out_list:
+                        for tmp, paths in tmp_dict.items():
                             for path in paths:
-                                txt_path =rf"{script_path}{path}"
-                                print(path)
+                                txt_path = rf"{base_path}{path}"
                                 with open(txt_path, "r") as file:
                                     lines += file.readlines()
-                generate_wav_srt_by_txt(lines, script_path, wav_path, key, False, False)
+
+                generate_wav_srt_by_txt(lines, base_path, wav_path, key, False, False, translation_json)
                 print(key)
-                # print(lines)
 
 
-def generate_wav_srt_by_txt(lines, script_path, wav_path, job_name, with_speaker, with_ch):
+def generate_wav_srt_by_txt(lines, out_path, wav_path, job_name, with_speaker, with_ch, translation_json):
     even_lines = lines[1::2]
 
     wem_meta = {}
@@ -268,7 +288,7 @@ def generate_wav_srt_by_txt(lines, script_path, wav_path, job_name, with_speaker
         # print(matches)
         for match in matches:
             # print(match)
-            specific_line = generate_line_srt_by_filename(match['content'], with_speaker, with_ch)
+            specific_line = generate_line_srt_by_filename(match['content'], with_speaker, with_ch, translation_json)
             # specific_line = line1.split('<br>')[0]
             # for ending in [" v3", " v2", " v1"]:
             #     if specific_line.endswith(ending):
@@ -295,82 +315,30 @@ def generate_wav_srt_by_txt(lines, script_path, wav_path, job_name, with_speaker
         # current_time += time_gap * 3
         # output_audio += AudioSegment.silent(duration=time_gap*3)
 
-    wav_destination = rf"{script_path}{job_name}_{job_name}.wav"
+    wav_destination = rf"{out_path}{job_name}_{job_name}.wav"
     output_audio.export(wav_destination, format="wav")
     print(f"saved wav: {wav_destination}")
-    srt_destination = rf"{script_path}{job_name}_{job_name}.srt"
+    srt_destination = rf"{out_path}{job_name}_{job_name}.srt"
     subtitles.save(srt_destination)
     print(f"saved srt: {srt_destination}")
     print(order)
 
 
-def generate_full_audio():
+def generate_full_audio(wav_path, outwav_name):
     '''
-    跟generate_full_audio_srt_by_file差不多，基本是废弃状态
+    直接将wav_path中的所有wav拼接在一起
     :return:
     '''
     time_gap = 1000
     output_audio = AudioSegment.silent(duration=time_gap)
-    current_time = time_gap
-    subtitles = pysrt.SubRipFile()
-    order = 1
-    # order_list = [8, 10, 12, 14, 32, 34, 36, 38, 56, 58, 60, 62, 80, 82, 84, 104, 106, 108, 110, 128, 130, 132, 134,
-    #               152, 154, 156, 158, 178, 180, 182, 184, 202, 204, 206, 208]
-    # new_order = []
-    # for order_int in order_list:
-    #     new_order.append(order_int-8)
-    # order_list = new_order
 
-    for root, dirs, files in os.walk(karlach_wav):
-        # for file in sorted(files, key=sort_by_number):
+    for root, dirs, files in os.walk(wav_path):
         for file in files:
-            # 提取文件名开头的序号
-            # line_number = int(file.split("-", 1)[0])
-            # # 查询对应台词
-            # # specific_line = get_specific_line(karlach_tmp, line_number + 1)
-            # pattern = r"\d+-(.*)\."
-            # match = re.search(pattern, file)
-            # if match:
-            #     specific_line = match.group(1)
-            # else:
-            #     specific_line = get_specific_line(karlach_tmp, line_number + 1)
+            if ".wav" in file:
+                wav_current = rf"{wav_path}{file}"
+                audio_segment = AudioSegment.from_file(wav_current, format='wav')
+                output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
 
-            # if sort_by_number(file) in order_list:
-            if "_" in file:
-                charactor = file.split('_', 1)[0]
-                if charactor in speaker_code:
-                    speaker = speaker_code[charactor]
-                else:
-                    speaker = ""
-                    print(charactor)
-                if charactor in speaker_code_ch:
-                    speaker_ch = speaker_code_ch[charactor]
-                else:
-                    speaker_ch = ""
-            specific_line = f"{speaker_ch}\n{speaker}"
-            print(specific_line)
-
-            wav_current = rf"{karlach_wav}{file}"
-            audio_segment = AudioSegment.from_file(wav_current, format='wav')
-            output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
-
-            duration = len(audio_segment)
-            subtitle_item = pysrt.SubRipItem()
-
-            subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
-            subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
-            subtitle_item.index = order
-            subtitle_item.text = f"{specific_line}"
-
-            current_time += duration + time_gap
-
-            subtitles.append(subtitle_item)
-            order += 1
-
-        wav_destination = rf"{karlach_directory}output.wav"
+        wav_destination = rf"{wav_path}{outwav_name}.wav"
         output_audio.export(wav_destination, format="wav")
         print(f"saved wav: {wav_destination}")
-        srt_destination = rf"{karlach_directory}output.srt"
-        subtitles.save(srt_destination)
-        print(f"saved srt: {srt_destination}")
-        print(order)

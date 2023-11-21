@@ -32,6 +32,11 @@ tmp_order = ['h8b43b0acg323cg44fbg910eg712f6b5b545b', 'hef563c3bg94b5g4e25gb5dag
              'h4db73f45g8934g488fga75bg4ecc3e59b328']
 
 
+def copy_wem_by_ch(base_path, script_path):
+    # TODO: copy wav
+    return
+
+
 def copy_wem_by_school():
     count = 0
     with open(school_list, 'r') as file:

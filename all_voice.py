@@ -94,7 +94,7 @@ def gather_to_be_moved(path, output_file_file):
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
             wav_current = rf"{path}{file}"
-            specific_line = generate_line_srt_by_filename(file, False, True)
+            specific_line = generate_line_srt_by_filename(file, False, True, {})
             if specific_line != '' and specific_line.find('\n') == -1:
                 current = {specific_line: wav_current}
                 to_be_moved.append(current)

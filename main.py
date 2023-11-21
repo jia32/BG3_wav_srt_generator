@@ -13,16 +13,20 @@ def generate_spell_files():
     # print_spell()
 
     # start from here
-    copy_wem_by_school()
+    # copy_wem_by_school()
+    current_location = rf"{base_path}\Minthara\\"
+    script_filename = "spell_order.txt"
+    copy_wem_by_ch(current_location, script_filename)
+
     # update tmp_order with output from previous step
-    organize_by_companion()
-    generate_spell_audio()
-    convert_dds_to_png()
+    # organize_by_companion()
+    # generate_spell_audio()
+    # convert_dds_to_png()
 
 
 def generate_char_script():
     # write_output_json(char_ori, char_final)
-    script_location = rf"{base_path}\Tav\voice5\script\\"
+    script_location = rf"{base_path}Tav\voice1\script\\"
     # job_list = ['GLO_PAD_CombatReact_PartyDeath', 'GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start']
     job_name = "GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start"
 
@@ -33,7 +37,8 @@ def generate_char_script():
 
     # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
     # script_txt = rf"{script_location}{job_name}.txt"
-    script_txt = rf"{script_location}file_name_dict.json"
+    script_txt = rf"{script_location}final_order.json"
+    dict_path = rf"{script_location}file_name_dict.json"
     # current_target_path = rf"{script_location}\wem\{job_name}\\"
     #
     # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
@@ -41,13 +46,16 @@ def generate_char_script():
     wav_path = rf"{script_location}\wav\\"
 
     # create_dialog_txt(script_location, filename)
+    # create_dialog_txt_only(script_location)
     # Optional operations:
-    # generate_partial_final_txt(script_location)
+    # generate_partial_final_txt(script_location, "roman")
     # double_check_file_order(script_location)
 
     # copy_audio_wem(script_txt, current_target_path)
-    generate_full_audio_srt_by_file(script_location, script_txt, wav_path, job_name)
-    # generate_full_audio()
+    generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
+    # wav_path = rf"{script_location}wav\\"
+    # outwav_name = rf"all"
+    # generate_full_audio(wav_path, outwav_name)
 
 
 def generate_banter_files():
@@ -66,11 +74,11 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = r"Tav/voice5"
+    char = r"SceleritasFel"
     distinguish_audio(char)
     # combine_char_audio(char)
     #
-    # combine_audio(char, 1, 1000)
+    combine_audio(char, 1, 1000)
     # combine_audio(char, 2, 1000)
     # combine_audio(char, 3, 1000)
     # combine_audio(char, 4, 1000)
@@ -91,7 +99,7 @@ def compare_new_patch():
 if __name__ == '__main__':
     # generate_banter_files()
     # generate_other_files()
-    generate_char_script()
+    # generate_char_script()
     # generate_spell_files()
-    # generate_all_files()
+    generate_all_files()
     # compare_new_patch()
