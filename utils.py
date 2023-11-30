@@ -405,7 +405,7 @@ def find_dicts_with_key(string, dict_list):
     matching_dicts = []
     for dictionary in dict_list:
         for key in dictionary.keys():
-            if string.lower() in key.lower():
+            if string.lower() == key.lower() or f"{string}.".lower() == key.lower() or f"{string},".lower() == key.lower():
                 matching_dicts.append(dictionary)
                 break  # 跳出当前循环，继续下一个字典的遍历
     return matching_dicts
@@ -596,7 +596,7 @@ def find_through_metafile(contentuid, wem_meta):
     ###
     # TODO: need to refine logic for meta file in order to locate all the voice with text
     ###
-    voice_meta = look_for_meta(contentuid)
+    # voice_meta = look_for_meta(contentuid)
     voice_meta = rf"E:\tmp\converted\voiceMeta"
     matches = []
 
@@ -760,6 +760,8 @@ def move_wav_with_txt(txt_path, wav_path, target_path):
 
 def locate_specific_line(wav_filename):
     lsj_path = locate_lsj(wav_filename)
+    if lsj_path is None:
+        return ""
     contetnt_list = find_contentuid_within_lsj(wav_filename, lsj_path)
     return find_text_by_uid(contetnt_list)
 
@@ -806,4 +808,5 @@ def search_in_file(directory, search_string, limited):
                             return file_path
             except Exception as e:
                 print(f"Error reading file {file_path}: {e}")
-    print('string not found')
+    print(f'{search_string} not found in {directory}')
+    return None

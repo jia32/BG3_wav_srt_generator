@@ -26,9 +26,9 @@ def generate_spell_files():
 
 def generate_char_script():
     # write_output_json(char_ori, char_final)
-    script_location = rf"{base_path}Tav\voice1\script\\"
+    script_location = rf"{base_path}common_lsj\\"
     # job_list = ['GLO_PAD_CombatReact_PartyDeath', 'GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start']
-    job_name = "GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start"
+    job_name = "LOW_BhaalTemple_OM_OrinDarkUrge_AOM"
 
     # for job_name in job_list:
     filename = f"{job_name}.lsj"
@@ -36,25 +36,26 @@ def generate_char_script():
     # print_dialog_txt()
 
     # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
-    # script_txt = rf"{script_location}{job_name}.txt"
-    script_txt = rf"{script_location}final_order.json"
+    script_txt = rf"{script_location}{job_name}.txt"
+    # script_txt = rf"{script_location}final_order.json"
     dict_path = rf"{script_location}file_name_dict.json"
-    # current_target_path = rf"{script_location}\wem\{job_name}\\"
+    current_target_path = rf"{script_location}\wem\{job_name}\\"
     #
     # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
     # script_txt = f"{script_path}{job_name}.txt"
     wav_path = rf"{script_location}\wav\\"
 
-    # create_dialog_txt(script_location, filename)
+    create_dialog_txt(script_location, filename)
     # create_dialog_txt_only(script_location)
     # Optional operations:
     # generate_partial_final_txt(script_location, "roman")
     # double_check_file_order(script_location)
 
     # copy_audio_wem(script_txt, current_target_path)
-    generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
-    # wav_path = rf"{script_location}wav\\"
-    # outwav_name = rf"all"
+    # script_txt = rf"{script_location}sneak.json"
+    # generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
+    # wav_path = rf"{script_location}\roman\\"
+    # outwav_name = rf"roman"
     # generate_full_audio(wav_path, outwav_name)
 
 
@@ -74,13 +75,13 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = r"SceleritasFel"
-    distinguish_audio(char)
+    char = r"Minsc\\"
+    # distinguish_audio(char)
     # combine_char_audio(char)
     #
     combine_audio(char, 1, 1000)
-    # combine_audio(char, 2, 1000)
-    # combine_audio(char, 3, 1000)
+    combine_audio(char, 2, 1000)
+    combine_audio(char, 3, 1000)
     # combine_audio(char, 4, 1000)
     # combine_audio(char, 5, 1000)
     # combine_audio(char, 6, 1000)

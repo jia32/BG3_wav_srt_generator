@@ -335,7 +335,10 @@ def generate_full_audio(wav_path, outwav_name):
     for root, dirs, files in os.walk(wav_path):
         for file in files:
             if ".wav" in file:
+
                 wav_current = rf"{wav_path}{file}"
+                print(wav_current)
+
                 audio_segment = AudioSegment.from_file(wav_current, format='wav')
                 output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
 

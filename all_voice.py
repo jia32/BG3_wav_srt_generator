@@ -40,6 +40,9 @@ def distinguish_audio(job_name):
     move_visious_mockery(wav_path, vm_path)
     death_folder = rf"{base_path}{job_name}\death_wav\\"
     move_death(wav_path, death_folder)
+    if "Tav" in job_name:
+        orin_path = rf"{base_path}{job_name}\orin_wav\\"
+        move_durge_orin(wav_path, orin_path)
 
 
 def move_death(wav_path, target_path):
@@ -47,6 +50,13 @@ def move_death(wav_path, target_path):
     if not os.path.exists(target_path):
         os.makedirs(target_path)
     move_wav_with_txt(death_path, wav_path, target_path)
+
+
+def move_durge_orin(wav_path, target_path):
+    print("move durge orin voiceline")
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+    move_wav_with_txt(durge_orin_path, wav_path, target_path)
 
 
 def move_visious_mockery(wav_path, target_path):
@@ -214,51 +224,56 @@ def combine_audio(job_name, iteration, file_limit):
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
             if i >= file_limit * (iteration - 1):
-                wav_current = rf"{path}{file}"
-                audio_segment = AudioSegment.from_file(wav_current, format='wav')
-
-                channel1 = audio_segment.channels
-                channel2 = output_audio.channels
-                if channel1 != channel2:
-                    if channel1 > channel2:
-                        audio_segment = audio_segment.set_channels(channel2)
-                    if channel1 < channel2:
-                        output_audio = output_audio.set_channels(channel1)
-
-                output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
-                order += 1
-                print(order)
+                skip_current = False
                 specific_line = locate_specific_line(file)
                 print(specific_line)
                 if specific_line == "":
                     delta = timedelta(milliseconds=current_time)
                     empty_line.append({str(delta): file})
                     print(f"{file}")
+                    skip_current = True
 
-                duration = len(audio_segment)
-                subtitle_item = pysrt.SubRipItem()
+                if not skip_current:
+                    wav_current = rf"{path}{file}"
+                    audio_segment = AudioSegment.from_file(wav_current, format='wav')
 
-                subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
-                subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
-                subtitle_item.index = order
-                subtitle_item.text = f"{specific_line}"
+                    channel1 = audio_segment.channels
+                    channel2 = output_audio.channels
+                    if channel1 != channel2:
+                        if channel1 > channel2:
+                            audio_segment = audio_segment.set_channels(channel2)
+                        if channel1 < channel2:
+                            output_audio = output_audio.set_channels(channel1)
 
-                current_time += duration + time_gap
+                    output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+                    order += 1
+                    print(order)
 
-                subtitles.append(subtitle_item)
-                if i == file_limit * iteration - 1:
-                    out_srt_destination = rf"{out_path}all_{iteration}.srt"
-                    subtitles.save(out_srt_destination)
-                    print(f"saved srt: {out_srt_destination}")
-                    wav_destination = rf"{out_path}all_{iteration}.wav"
-                    output_audio.export(wav_destination, format="wav")
-                    print(f"saved wav: {wav_destination}")
 
-                    tmp_path = f"{out_path}empty_{iteration}.txt"
-                    with open(tmp_path, 'w') as output_file:
-                        json.dump(empty_line, output_file)
-                    print(f"output empty line to {tmp_path}")
-                    return
+                    duration = len(audio_segment)
+                    subtitle_item = pysrt.SubRipItem()
+
+                    subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+                    subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
+                    subtitle_item.index = order
+                    subtitle_item.text = f"{specific_line}"
+
+                    current_time += duration + time_gap
+
+                    subtitles.append(subtitle_item)
+                    if i == file_limit * iteration - 1:
+                        out_srt_destination = rf"{out_path}all_{iteration}.srt"
+                        subtitles.save(out_srt_destination)
+                        print(f"saved srt: {out_srt_destination}")
+                        wav_destination = rf"{out_path}all_{iteration}.wav"
+                        output_audio.export(wav_destination, format="wav")
+                        print(f"saved wav: {wav_destination}")
+
+                        tmp_path = f"{out_path}empty_{iteration}.txt"
+                        with open(tmp_path, 'w') as output_file:
+                            json.dump(empty_line, output_file)
+                        print(f"output empty line to {tmp_path}")
+                        return
 
         # 处理剩余的文件
         if len(output_audio) > 0:
