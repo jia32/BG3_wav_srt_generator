@@ -26,9 +26,9 @@ def generate_spell_files():
 
 def generate_char_script():
     # write_output_json(char_ori, char_final)
-    script_location = rf"{base_path}common_lsj\\"
+    script_location = rf"{base_path}Minthara\script\\"
     # job_list = ['GLO_PAD_CombatReact_PartyDeath', 'GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start']
-    job_name = "LOW_BhaalTemple_OM_OrinDarkUrge_AOM"
+    job_name = "SCE_Minthara_Dead"
 
     # for job_name in job_list:
     filename = f"{job_name}.lsj"
@@ -45,7 +45,7 @@ def generate_char_script():
     # script_txt = f"{script_path}{job_name}.txt"
     wav_path = rf"{script_location}\wav\\"
 
-    create_dialog_txt(script_location, filename)
+    # create_dialog_txt(script_location, filename)
     # create_dialog_txt_only(script_location)
     # Optional operations:
     # generate_partial_final_txt(script_location, "roman")
@@ -75,13 +75,13 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = r"Minsc\\"
-    # distinguish_audio(char)
+    char = r"Astarion\\"
+    distinguish_audio(char)
     # combine_char_audio(char)
     #
     combine_audio(char, 1, 1000)
-    combine_audio(char, 2, 1000)
-    combine_audio(char, 3, 1000)
+    # combine_audio(char, 2, 1000)
+    # combine_audio(char, 3, 1000)
     # combine_audio(char, 4, 1000)
     # combine_audio(char, 5, 1000)
     # combine_audio(char, 6, 1000)
@@ -90,10 +90,26 @@ def generate_all_files():
 
 
 def compare_new_patch():
-    last_version = r"E:\tmp\converted\Patch-2\\"
-    curr_version = r"E:\tmp\converted\Patch-4\\"
-    find_different_files(last_version, curr_version)
+    last_version = r"E:\Project\BG3_party_banter\Data\text\Dialogs-patch4\\"
+    curr_version = r"E:\Project\BG3_party_banter\Data\text\Dialogs-patch5\\"
+
+    last_voice = r"E:\tmp\bg3-modders-multitool\UnpackedData\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
+    curr_voice = r"E:\tmp\bg3-modders-multitool\UnpackedMods\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
+    output_name = "voice"
+    find_different_files(last_voice, curr_voice, output_name)
+
+    # compare_file_size(last_version, curr_version)
     # difference_of_existing_files(curr_version)
+    # output_diff_voice(last_folder, curr_folder)
+
+
+def copy_wem_file():
+    job_name = "voice"
+    filename_list = rf"{base_path}\new_patch\report_{job_name}.txt"
+    ch_name = "Astarion"
+    target_path = rf"{base_path}{ch_name}\patch5_wem\\"
+
+    copy_updated_file_by_ch(filename_list, ch_name, target_path)
 
 
 # Press the green button in the gutter to run the script.
@@ -104,3 +120,6 @@ if __name__ == '__main__':
     # generate_spell_files()
     generate_all_files()
     # compare_new_patch()
+    # copy_wem_file()
+    # tmp = "h13f7e675gdf5eg4f44g8489g4bc1538f5e2e"
+    # print(generate_line_srt_by_filename(f"123_{tmp}.wem", True, True, {}))

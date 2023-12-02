@@ -810,3 +810,10 @@ def search_in_file(directory, search_string, limited):
                 print(f"Error reading file {file_path}: {e}")
     print(f'{search_string} not found in {directory}')
     return None
+
+
+def get_speakercode_by_ch(ch):
+    for key, value in speaker_code.items():
+        if ch in value:
+            return key
+    return None

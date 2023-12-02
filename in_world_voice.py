@@ -210,7 +210,7 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
         # even_lines = lines[1::2]
         print(lines)
         # print(even_lines)
-        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, True, True)
+        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, True, True, {})
     else:
         translation_json = {}
         if "GenericOrigin" in job_name:
