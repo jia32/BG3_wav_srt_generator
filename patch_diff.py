@@ -132,10 +132,77 @@ def copy_updated_file_by_ch(reference, ch_name, target_path):
     to_be_copied = []
     for line in lines:
         if speaker in line:
-            to_be_copied.append(line.strip().replace("Added: ", "").replace("Removed: ", ""))
+            if "Added" in line:
+                to_be_copied.append(line.strip().replace("Added: ", ""))
+            else:
+                print(line)
 
     print(f"{len(to_be_copied)} to be copied")
 
     for item in to_be_copied:
         copied_path = shutil.copy(item, target_path)
         print(f"{copied_path} is copied")
+
+
+def find_flag_by_word(key_string):
+    flag_list = search_in_file(flag_meta_file_path, key_string, False)
+    for flag_file in flag_list:
+        with open(flag_file, 'r') as file:
+            flag_json = json.load(file)
+        print(f"{flag_json['save']['regions']['Flags']['Name']['value']}： "
+              f"{flag_json['save']['regions']['Flags']['Description']['value']}")
+        print()
+
+
+def find_flagname_by_tag():
+    tag_list = ['Shadowheart_InParty_Event_HappenedThought',
+                'VISITEDREGION_BGO_Main_A',
+                'ORI_Gale_State_ClaimedCrown',
+                'ORI_Gale_Knows_ReadKarsusNotes',
+                'ORI_Gale_State_SwayedTowardsCrown',
+                'ORI_Gale_Knows_KarsiteWeave']
+    for tag in tag_list:
+        find_flag_by_word(tag)
+
+
+def find_flag_by_lsj(lsj_path):
+    checkflag_list = []
+    setflag_list = []
+
+    with open(lsj_path, 'r') as file:
+        lsj_json = json.load(file)
+
+    for node in lsj_json["save"]["regions"]["dialog"]["nodes"][0]['node']:
+        if "checkflags" in node:
+            if "flaggroup" in node['checkflags'][0]:
+                for flag in node['checkflags'][0]['flaggroup']:
+                    checkflag_list.append(flag['flag'][0]['UUID']['value'])
+        if "setflags" in node:
+            if "flaggroup" in node['setflags'][0]:
+                for flag in node['setflags'][0]['flaggroup']:
+                    setflag_list.append(flag['flag'][0]['UUID']['value'])
+
+    checkflag_list = list(set(checkflag_list))
+    setflag_list = list(set(setflag_list))
+
+    print(f"{len(checkflag_list)} flags to be checked")
+    for checkflag in checkflag_list:
+        flag_path = rf"{flag_meta_file_path}{checkflag}.lsf.lsj"
+        try:
+            with open(flag_path, 'r') as file:
+                flag_json = json.load(file)
+            print(f"{flag_json['save']['regions']['Flags']['Name']['value']}： "
+                  f"{flag_json['save']['regions']['Flags']['Description']['value']}")
+        except Exception as e:
+            print(f"Error reading file {flag_path}: {e}")
+
+    print(f"{len(setflag_list)} flags to be checked")
+    for setflag in setflag_list:
+        flag_path = rf"{flag_meta_file_path}{setflag}.lsf.lsj"
+        try:
+            with open(flag_path, 'r') as file:
+                flag_json = json.load(file)
+            print(f"{flag_json['save']['regions']['Flags']['Name']['value']}： "
+                  f"{flag_json['save']['regions']['Flags']['Description']['value']}")
+        except Exception as e:
+            print(f"Error reading file {flag_path}: {e}")

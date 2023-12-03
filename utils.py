@@ -795,21 +795,25 @@ def find_text_by_uid(contentuid_list):
 
 
 def search_in_file(directory, search_string, limited):
+    file_list = []
     for dirpath, dirnames, filenames in os.walk(directory):
         for filename in filenames:
-            # if ".lsx" in filename:
+            # if ".lsj" in filename:
             file_path = os.path.join(dirpath, filename)
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
                     content = file.read()
-                    if re.search(search_string, content):
-                        # print(f"Found '{search_string}' in: {file_path}")
+                    if re.search(search_string, content, re.IGNORECASE):
+                        print(f"Found '{search_string}' in: {file_path}")
+                        file_list.append(file_path)
                         if limited:
                             return file_path
             except Exception as e:
                 print(f"Error reading file {file_path}: {e}")
-    print(f'{search_string} not found in {directory}')
-    return None
+    if limited:
+        print(f'{search_string} not found in {directory}')
+    return file_list
+
 
 
 def get_speakercode_by_ch(ch):

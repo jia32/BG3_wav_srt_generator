@@ -75,7 +75,7 @@ def generate_other_files():
 
 
 def generate_all_files():
-    char = r"Astarion\\"
+    char = r"Narrator\\"
     distinguish_audio(char)
     # combine_char_audio(char)
     #
@@ -96,17 +96,21 @@ def compare_new_patch():
     last_voice = r"E:\tmp\bg3-modders-multitool\UnpackedData\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
     curr_voice = r"E:\tmp\bg3-modders-multitool\UnpackedMods\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
     output_name = "voice"
-    find_different_files(last_voice, curr_voice, output_name)
+    # find_different_files(last_voice, curr_voice, output_name)
 
     # compare_file_size(last_version, curr_version)
     # difference_of_existing_files(curr_version)
     # output_diff_voice(last_folder, curr_folder)
+    # find_flag_by_word("gale")
+    # lsj_path = rf"{base_path}\Gale\script\END_BrainBattle_CombatOver_Nested_AfterGithLeave.lsj"
+    # find_flag_by_lsj(lsj_path)
+    find_flagname_by_tag()
 
 
 def copy_wem_file():
     job_name = "voice"
     filename_list = rf"{base_path}\new_patch\report_{job_name}.txt"
-    ch_name = "Astarion"
+    ch_name = "Emperor"
     target_path = rf"{base_path}{ch_name}\patch5_wem\\"
 
     copy_updated_file_by_ch(filename_list, ch_name, target_path)
@@ -118,8 +122,8 @@ if __name__ == '__main__':
     # generate_other_files()
     # generate_char_script()
     # generate_spell_files()
-    generate_all_files()
-    # compare_new_patch()
+    # generate_all_files()
+    compare_new_patch()
     # copy_wem_file()
     # tmp = "h13f7e675gdf5eg4f44g8489g4bc1538f5e2e"
     # print(generate_line_srt_by_filename(f"123_{tmp}.wem", True, True, {}))
