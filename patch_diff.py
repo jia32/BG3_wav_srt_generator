@@ -155,12 +155,8 @@ def find_flag_by_word(key_string):
 
 
 def find_flagname_by_tag():
-    tag_list = ['Shadowheart_InParty_Event_HappenedThought',
-                'VISITEDREGION_BGO_Main_A',
-                'ORI_Gale_State_ClaimedCrown',
-                'ORI_Gale_Knows_ReadKarsusNotes',
-                'ORI_Gale_State_SwayedTowardsCrown',
-                'ORI_Gale_Knows_KarsiteWeave']
+    tag_list = ['ORI_Astarion_State_SeekGurAgainstCazador',
+                'ORI_Astarion_State_PowerfulFriends']
     for tag in tag_list:
         find_flag_by_word(tag)
 
@@ -206,3 +202,68 @@ def find_flag_by_lsj(lsj_path):
                   f"{flag_json['save']['regions']['Flags']['Description']['value']}")
         except Exception as e:
             print(f"Error reading file {flag_path}: {e}")
+
+
+def copy_wem_file_new_patch(ch_name):
+    job_name = "voice"
+    filename_list = rf"{base_path}\new_patch\report_{job_name}.txt"
+    target_path = rf"{base_path}{ch_name}\patch5_wem\\"
+
+    copy_updated_file_by_ch(filename_list, ch_name, target_path)
+
+
+def find_lsj_by_wem(char):
+    wem_path = rf"{base_path}{char}\patch5_wem\\"
+    output_file_file = rf"{base_path}{char}\patch5_report.json"
+    tmp_report = {}
+    report = {}
+
+    for root, dirs, files in os.walk(wem_path):
+        for wav_file in files:
+            wem_path = f"{wav_file[:-3]}wem"
+            contentuid = find_contentuid_by_wemfile(wem_path)
+            tmp = f"123_{contentuid}.wav"
+            line = generate_line_srt_by_filename(wav_file, False, False, {})
+
+            lsj_file = search_in_file(all_lsj_path, contentuid, False)
+            tmp_report[line] = lsj_file
+
+    for line, lsj_list in tmp_report.items():
+        for lsj in lsj_list:
+            if lsj not in report:
+                report[lsj] = [line]
+            else:
+                report[lsj].append(line)
+
+    with open(output_file_file, 'w') as output_file:
+        json.dump(report, output_file)
+
+
+def find_contentuid_by_wemfile(wem_path):
+    meta_file = locate_lsj(wem_path)
+    if not meta_file:
+        return
+    with open(meta_file, 'r') as file:
+        meta_json = json.load(file)
+
+    for voiceSpeakerMetaData in meta_json['save']['regions']['VoiceMetaData']['VoiceSpeakerMetaData'][0]['MapValue'][0][
+        'VoiceTextMetaData']:
+        if voiceSpeakerMetaData['MapValue'][0]['Source']['value'] == wem_path:
+            # print(voiceSpeakerMetaData)
+            return voiceSpeakerMetaData['MapKey']['value']
+
+
+def copy_lsj_to_script(char):
+    report_json_path = rf"{base_path}{char}\patch5_report.json"
+    target_path = rf"{base_path}{char}\script\\"
+
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+
+    with open(report_json_path, 'r') as file:
+        report_json = json.load(file)
+
+    for lsj_path, line_list in report_json.items():
+        copied_path = shutil.copy(lsj_path, target_path)
+        print(f"{copied_path} is copied")
+

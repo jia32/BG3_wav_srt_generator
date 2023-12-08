@@ -5,8 +5,7 @@ import re
 import csv
 import fnmatch
 import shutil
-from constant import speaker_name, speaker_name_ch, output_dialog, tmp_content_json, speaker_code, speaker_code_ch, \
-    spell_gen, spell_json, spell_out_csv, voice_location, voice_meta_file_path, tree, tree_ch
+from constant import *
 
 
 def output_dialog_txt_file(output_string):
@@ -153,8 +152,8 @@ def filled_string(content_list):
     :return:
     """
     # Parse the XML string to a tree structure
-    file_name = "/Data/Input/english_content.xml"
-    file_name_ch = "/Data/Input/chinese_content.xml"
+    file_name = "/Data/Input/english_patch5.xml"
+    file_name_ch = "/Data/Input/chinese_patch5.xml"
     # Get the directory path of the current file
     xml_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{file_name}"
     xml_path_ch = f"{os.path.dirname(os.path.abspath(__file__))}\\{file_name_ch}"
@@ -476,7 +475,7 @@ def double_check_file_order(out_path):
                                 current_txt = tmp_txt.readlines()
                             no_lines_in_final += len(current_txt)
                             scenario_count += len(current_txt)
-                # print({scenario:scenario_count})
+                print({scenario:scenario_count})
 
     for item in filename_dict_json:
         for value in item.values():
@@ -711,6 +710,30 @@ def print_spell():
         json.dump(content, file, ensure_ascii=False)
 
 
+def csv_to_json(csv_file_path, json_file_path):
+    encodings = ['utf-8-sig', 'gbk', 'utf-16']
+
+    # Try different encodings until successful
+    for encoding in encodings:
+        try:
+            with open(csv_file_path, 'r', encoding=encoding) as csv_file:
+                csv_data = csv.DictReader(csv_file)
+
+                # Convert CSV data to JSON format
+                json_data = json.dumps(list(csv_data), ensure_ascii=False, indent=4)
+
+            with open(json_file_path, 'w', encoding='utf-8') as json_file:
+                json_file.write(json_data)
+
+            print("CSV file successfully converted to JSON.")
+            return
+
+        except UnicodeDecodeError:
+            pass
+
+    print("Unable to decode the CSV file using the available encodings.")
+
+
 def content_exist(contentuid):
     # check if content id could match exists wem file
     pattern = f"*{contentuid}.wem"
@@ -721,6 +744,14 @@ def content_exist(contentuid):
             print(f"found {filename}")
             return True
     return False
+
+
+def if_content_exist(pattern, path):
+    for root, dirs, files in os.walk(path):
+        for filename in fnmatch.filter(files, pattern):
+            print(f"found {filename}")
+            return filename
+    return
 
 
 def sort_by_number(filename):
@@ -789,7 +820,7 @@ def find_contentuid_within_lsj(wav_filename, lsj_path):
 
 def find_text_by_uid(contentuid_list):
     for contentuid in contentuid_list:
-        result = generate_line_srt_by_filename(f"123_{contentuid}.wav", False, True,{})
+        result = generate_line_srt_by_filename(f"123_{contentuid}.wav", False, True, {})
         if result != "":
             return result
 
@@ -815,9 +846,34 @@ def search_in_file(directory, search_string, limited):
     return file_list
 
 
-
 def get_speakercode_by_ch(ch):
     for key, value in speaker_code.items():
         if ch in value:
             return key
     return None
+
+
+def copy_all_wem(ch_name):
+    speaker = get_speakercode_by_ch(ch_name)
+    if speaker is None:
+        print(f" {ch_name} code not found, pls manually find it and add to const.")
+
+    to_be_copied = []
+    for filename in os.listdir(voice_location):
+        if filename.startswith(speaker) and filename.endswith(".wem"):
+            to_be_copied.append(filename)
+
+    if len(to_be_copied) == 0:
+        print("no matched files")
+        return
+
+    target_path = rf"{base_path}{ch_name}\wem\\"
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+
+    for wem_filename in to_be_copied:
+        source_wav = os.path.join(voice_location, wem_filename)
+        copy_file = shutil.copy(source_wav, target_path)
+        print(f"copied {source_wav} to {copy_file}")
+
+    print(f"copied {len(to_be_copied)} files")

@@ -45,10 +45,10 @@ def create_dialog_txt(script_location, filename):
     target_location = f"{script_location}{filename[:-4]}.txt"
 
     if need_note:
-        write_multi_text_from_lsj(sommon_json_content_list, script_location)
-        generate_file_order(script_location)
+        # write_multi_text_from_lsj(sommon_json_content_list, script_location)
+        # generate_file_order(script_location)
         # generate_partial_final_txt(script_location)
-        # double_check_file_order(script_location)
+        double_check_file_order(script_location)
     else:
         out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
         if not os.path.exists(karlach_directory):
@@ -210,7 +210,7 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
         # even_lines = lines[1::2]
         print(lines)
         # print(even_lines)
-        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, True, True, {})
+        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, False, True, {})
     else:
         translation_json = {}
         if "GenericOrigin" in job_name:
@@ -220,10 +220,10 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
         with open(dict_path, 'r') as file:
             dict_json = json.load(file)
         result = {}
+        lines = []
 
         for need_to_work in working_scenario_list:
             for key, strings in need_to_work.items():
-                lines = []
                 for string in strings:
                     out_list = find_dicts_with_key(string, dict_json)
                     for tmp_dict in out_list:
@@ -233,8 +233,8 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
                                 with open(txt_path, "r") as file:
                                     lines += file.readlines()
 
-                generate_wav_srt_by_txt(lines, base_path, wav_path, key, False, False, translation_json)
-                print(key)
+        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, False, False, translation_json)
+        # print(key)
 
 
 def generate_wav_srt_by_txt(lines, out_path, wav_path, job_name, with_speaker, with_ch, translation_json):

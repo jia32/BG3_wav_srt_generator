@@ -5,9 +5,8 @@ import fnmatch
 from pydub import AudioSegment
 import pysrt
 from PIL import Image
-from constant import school_list, spell_json, voice_location, school_path_wem, school_path_wav, \
-    speaker_code, spell_icon, translated_spell
-from utils import content_exist, sort_by_number
+from constant import *
+from utils import *
 
 tmp_order = ['h8b43b0acg323cg44fbg910eg712f6b5b545b', 'hef563c3bg94b5g4e25gb5dag8c6a6f361e22',
              'hfad5c255g3d3cg4aa5gbae0ga8c89ab7a90e', 'h356e0207gf8c9g4171g862cgf85d9760be09',
@@ -32,9 +31,53 @@ tmp_order = ['h8b43b0acg323cg44fbg910eg712f6b5b545b', 'hef563c3bg94b5g4e25gb5dag
              'h4db73f45g8934g488fga75bg4ecc3e59b328']
 
 
-def copy_wem_by_ch(base_path, script_path):
-    # TODO: copy wav
-    return
+def copy_spell_wem_by_ch(char):
+    source_wem_path = rf"{base_path}{char}\char_wav\\"
+    target_directory = rf"{base_path}{char}\spell_wav\\"
+    target_spell_list_path = rf"{base_path}{char}\spell.json"
+
+    print(source_wem_path)
+    if not os.path.exists(source_wem_path):
+        print("need to copy char_wav")
+        return
+
+    with open(spell_all_txt, 'r') as file:
+        all_spell_list = [line.rstrip('\r\n') for line in file.readlines()]
+
+    with open(spell_json, 'r', encoding='utf-8') as f:
+        json_content = json.loads(f.read())
+
+    need_to_be_copied = {}
+    for spell_logic in all_spell_list:
+        need_to_be_copied[spell_logic] = []
+        for spell_line in json_content:
+            if spell_line['logic'] == spell_logic:
+                # print(spell_logic)
+                for spell_content in spell_line['content_list']:
+                    pattern = f"*{spell_content['contentuid']}.wav"
+                    found_file = if_content_exist(pattern, source_wem_path)
+                    if found_file:
+                        need_to_be_copied[spell_logic].append(found_file)
+
+    print(len(need_to_be_copied))
+    with open(target_spell_list_path, 'w') as output_file:
+        json.dump(need_to_be_copied, output_file)
+
+    if not os.path.exists(target_directory):
+        os.makedirs(target_directory)
+
+    count = 0
+    for spell_desc_spec, filename_list in need_to_be_copied.items():
+        for wav_file in filename_list:
+            for root, dirs, files in os.walk(source_wem_path):
+                for filename in fnmatch.filter(files, wav_file):
+                    source_file = os.path.join(root, filename)
+                    shutil.move(source_file, target_directory)
+                    print(f"move {source_file} to {target_directory}")
+                    count += 1
+        print(f"copied {count} files")
+
+    return need_to_be_copied
 
 
 def copy_wem_by_school():
@@ -108,56 +151,114 @@ def organize_by_companion():
                         print(f"{target_filename} exists, skip")
 
 
-def generate_spell_audio():
-    with open(spell_json, 'r', encoding='utf-8') as f:
-        json_content = json.loads(f.read())
+def generate_spell_audio(char):
+    source_wav_path = rf"{base_path}{char}\spell_wav\\"
+    target_directory = rf"{base_path}{char}\spell\\"
+    target_spell_list_path = rf"{base_path}{char}\spell.json"
+    spell_list =  rf"{base_path}{char}\spell_order.txt"
+    if not os.path.exists(target_directory):
+        os.makedirs(target_directory)
+
+    with open(target_spell_list_path, 'r', encoding='utf-8') as f:
+        spell_list_json = json.loads(f.read())
+
+    with open(spell_list, 'r') as file:
+        spell_list = file.readlines()
 
     time_gap = 800
 
-    character_list = list(speaker_code.values())
-    for character in character_list:
-        output_audio = AudioSegment.silent(duration=time_gap)
-        current_time = time_gap
-        subtitles = pysrt.SubRipFile()
-        order = 1
+    output_audio = AudioSegment.silent(duration=time_gap)
+    current_time = time_gap
+    subtitles = pysrt.SubRipFile()
+    subtitles_desc = pysrt.SubRipFile()
+    order = 1
 
-        wav_path = rf"{school_path_wav}{character}\\"
-        print(wav_path)
-        for root, dirs, files in os.walk(wav_path):
-            for file in sorted(files, key=sort_by_number):
-                # 查询对应台词
-                specific_line = generate_spell_srt_line(json_content, tmp_order[order - 1])
-                wav_current = rf"{wav_path}{file}"
-                audio_segment = AudioSegment.from_file(wav_current, format='wav')
-                output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+    for spell_order in spell_list:
+        spell_desc_name = spell_order.strip()
+        wav_list = spell_list_json[spell_order.strip()]
+        subtitle_item = pysrt.SubRipItem()
+        subtitle_item_desc = pysrt.SubRipItem()
+        specific_line = find_spell_srt_by_desc(spell_desc_name)
+        spell_note = find_spell_note_by_desc(spell_desc_name)
 
-                duration = len(audio_segment)
-                subtitle_item = pysrt.SubRipItem()
+        subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+        subtitle_item_desc.start = pysrt.SubRipTime(milliseconds=current_time)
+        print(current_time)
+        print(specific_line)
 
-                subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
-                subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
-                subtitle_item.index = order
-                subtitle_item.text = f"{specific_line}"
+        if len(wav_list) > 0:
+            wav_current = rf"{source_wav_path}{wav_list[0]}"
+            audio_segment = AudioSegment.from_file(wav_current, format='wav')
+            output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+            duration = len(audio_segment)
+            current_time += duration + time_gap
 
-                current_time += duration + time_gap
+        print(current_time)
+        subtitle_item.end = pysrt.SubRipTime(milliseconds=current_time)
+        subtitle_item.index = order
+        subtitle_item.text = f"{specific_line}"
+        subtitles.append(subtitle_item)
 
-                subtitles.append(subtitle_item)
-                order += 1
+        subtitle_item_desc.end = pysrt.SubRipTime(milliseconds=current_time)
+        subtitle_item_desc.index = order
+        subtitle_item_desc.text = f"{spell_note}"
+        subtitles_desc.append(subtitle_item_desc)
 
-        # wav_destination = rf"{school_path_wav}{character}.wav"
-        # output_audio.export(wav_destination, format="wav")
-        # print(f"saved wav: {wav_destination}")
-        srt_destination = rf"{school_path_wav}{character}.srt"
-        subtitles.save(srt_destination)
-        print(f"saved srt: {srt_destination}")
-        print(order)
+        order += 1
+
+        output_audio += AudioSegment.silent(duration=time_gap)
+        current_time += time_gap
+
+    wav_destination = rf"{target_directory}spell.wav"
+    output_audio.export(wav_destination, format="wav")
+    print(f"saved wav: {wav_destination}")
+    srt_destination = rf"{target_directory}spell.srt"
+    subtitles.save(srt_destination)
+    print(f"saved srt: {srt_destination}")
+    note_destination = rf"{target_directory}spell_note.srt"
+    subtitles_desc.save(note_destination)
+    print(f"saved note srt: {note_destination}")
+
+    print(order)
 
 
 def convert_dds_to_png():
     for root, dirs, files in os.walk(spell_icon):
         for file in files:
             image = Image.open(rf"{spell_icon}{file}")
+            print(f"{spell_icon}{file[:-4]}.png")
             image.save(f"{spell_icon}{file[:-4]}.png", "PNG")
+
+
+def find_spell_srt_by_desc(desc):
+    with open(spell_json, 'r', encoding='utf-8') as f:
+        json_content = json.loads(f.read())
+    for spell_line in json_content:
+        if spell_line['logic'] == desc:
+            latin = spell_line['line']
+            eng = spell_line['context']
+            translated_ch = translated_spell[eng.strip()]
+            return f"{translated_ch}\n{eng}\n{latin}"
+
+
+def find_spell_note_by_desc(desc):
+    with open(spell_with_ch, 'r', encoding='utf-8') as f:
+        json_content = json.loads(f.read())
+    for spell_line in json_content:
+        spell_logic = spell_line['label']
+        if spell_logic == desc:
+            note_ch = spell_line['desc']
+            if "L0" in spell_logic:
+                note_ch = f"{note_ch}: 0环/戏法"
+            elif "L1to3" in spell_logic:
+                note_ch = f"{note_ch}: 1-3环"
+            elif "L4to5" in spell_logic:
+                note_ch = f"{note_ch}: 4-5环"
+            if spell_line['spell'] != "":
+                return f"{spell_line['label']}\n{note_ch}\n比如： {spell_line['spell']}"
+            else:
+                return f"{spell_line['label']}\n{note_ch}"
+
 
 
 def generate_spell_srt_line(spell_list, filename):
