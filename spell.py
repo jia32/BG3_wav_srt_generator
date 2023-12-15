@@ -155,7 +155,8 @@ def generate_spell_audio(char):
     source_wav_path = rf"{base_path}{char}\spell_wav\\"
     target_directory = rf"{base_path}{char}\spell\\"
     target_spell_list_path = rf"{base_path}{char}\spell.json"
-    spell_list =  rf"{base_path}{char}\spell_order.txt"
+    spell_list = spell_order_txt
+
     if not os.path.exists(target_directory):
         os.makedirs(target_directory)
 

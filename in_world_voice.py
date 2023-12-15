@@ -45,10 +45,10 @@ def create_dialog_txt(script_location, filename):
     target_location = f"{script_location}{filename[:-4]}.txt"
 
     if need_note:
-        # write_multi_text_from_lsj(sommon_json_content_list, script_location)
-        # generate_file_order(script_location)
+        write_multi_text_from_lsj(sommon_json_content_list, script_location)
+        generate_file_order(script_location)
         # generate_partial_final_txt(script_location)
-        double_check_file_order(script_location)
+        # double_check_file_order(script_location)
     else:
         out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
         if not os.path.exists(karlach_directory):
@@ -132,19 +132,14 @@ def copy_audio_wem(script_txt, current_target_path):
                     matches.append(filename)
 
             if matches is not None and len(matches) == 0:
-                # print(f"try another method")
                 matches = find_through_metafile(line2, wem_meta)
-                # print(len(matches))
                 if matches is not None and len(matches) == 0:
                     print(f"{line2} not found in meta")
                 else:
                     print(f"{line2} found in meta")
-                # print(line1)
-                # print(line2)
-                # continue
+
             elif len(matches) > 1:
                 print(f"{pattern} have more then 1 matches")
-                # randomly choose one match to replace line2
                 random_match = random.choice(matches)
                 new_line2 = random_match.replace(".wem", "").split("\\")[-1]  # extract the filename without .wem
                 line2 = new_line2
@@ -193,6 +188,42 @@ def copy_audio_wem(script_txt, current_target_path):
     print(f"copied {count} files")
 
 
+def generate_srt_for_translations(base_path, script_txt, dict_path, job_name):
+    out_path = rf"{base_path}needs_to_be_translated.txt"
+
+    with open(script_txt, 'r') as file:
+        working_scenario_list = json.load(file)
+    with open(dict_path, 'r') as file:
+        dict_json = json.load(file)
+
+    lines = []
+    for need_to_work in working_scenario_list:
+        for key, strings in need_to_work.items():
+            for string in strings:
+                out_list = find_dicts_with_key(string, dict_json)
+                for tmp_dict in out_list:
+                    for tmp, paths in tmp_dict.items():
+                        for path in paths:
+                            txt_path = rf"{base_path}{path}"
+                            with open(txt_path, "r") as file:
+                                lines += file.readlines()
+
+    even_lines = lines[0::2]
+    lines_needs_to_be_translated = list(set(even_lines))
+
+    lines_needs_to_be_translated = [
+        string.replace("<i>", "").replace("</i>", "").replace("<br>", "").replace("</br>", "") for string in
+        lines_needs_to_be_translated]
+
+    # translation_json = tav_pnc_translation
+    # for engline, chline in translation_json.items():
+    #     if f"{engline}\n" not in lines_needs_to_be_translated:
+    #         print(engline)
+
+    with open(out_path, 'w') as file:
+        file.writelines(lines_needs_to_be_translated)
+
+
 def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, job_name):
     """
     根据中间文件txt，生成字幕及音频
@@ -212,29 +243,105 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
         # print(even_lines)
         generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, False, True, {})
     else:
-        translation_json = {}
-        if "GenericOrigin" in job_name:
-            translation_json = tav_pnc_translation
         with open(script_txt, 'r') as file:
             working_scenario_list = json.load(file)
         with open(dict_path, 'r') as file:
             dict_json = json.load(file)
-        result = {}
-        lines = []
+        print(dict_json)
+        generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_name, wav_path)
 
-        for need_to_work in working_scenario_list:
-            for key, strings in need_to_work.items():
-                for string in strings:
-                    out_list = find_dicts_with_key(string, dict_json)
-                    for tmp_dict in out_list:
-                        for tmp, paths in tmp_dict.items():
-                            for path in paths:
-                                txt_path = rf"{base_path}{path}"
-                                with open(txt_path, "r") as file:
-                                    lines += file.readlines()
 
-        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, False, False, translation_json)
-        # print(key)
+def generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_name, wav_path, ):
+    if "GenericOrigin" in job_name:
+        translation_json = tav_pnc_translation
+    elif "Jaheira" in job_name:
+        translation_json = load_tav_translation(jaheira_translation_path)
+    else:
+        translation_json = {}
+    wem_meta = {}
+
+    time_gap = 600
+
+    output_audio = AudioSegment.silent(duration=time_gap)
+    current_time = time_gap
+    subtitles = pysrt.SubRipFile()
+    subtitles_note = pysrt.SubRipFile()
+    order = 1
+    count = 0
+    note_order = 1
+    for need_to_work in working_scenario_list:
+        for key, strings in need_to_work.items():
+            for string in strings:
+                out_list = find_dicts_with_key(string, dict_json)
+                for tmp_dict in out_list:
+                    for tmp, paths in tmp_dict.items():
+                        length = 0
+                        subtitle_note_item = pysrt.SubRipItem()
+                        subtitle_note_item.start = pysrt.SubRipTime(milliseconds=current_time)
+
+                        for path in paths:
+                            txt_path = rf"{base_path}{path}"
+                            with open(txt_path, "r") as file:
+                                lines = file.readlines()
+                                length += len(file.readlines())
+
+                                even_lines = lines[1::2]
+
+                                for i in range(0, len(even_lines)):
+                                    matches = []
+                                    line2 = even_lines[i].strip()
+                                    pattern = f"*{line2}.wav"
+                                    count += 1
+                                    order += 1
+                                    for root, dirs, files in os.walk(wav_path):
+                                        for filename in fnmatch.filter(files, pattern):
+                                            matches.append({"filename": filename, "content": filename})
+
+                                    if len(matches) == 0:
+                                        for wem, meta in wem_meta.items():
+                                            if meta == line2:
+                                                charactor = wem.split('_', 1)[0]
+                                                content = f"{charactor}_{meta}.wav"
+                                                matches.append({"filename": f"{wem}.wav", "content": content})
+                                                break
+                                    for match in matches:
+                                        specific_line = generate_line_srt_by_filename(match['content'], False, False,
+                                                                                      translation_json)
+                                        print(specific_line)
+
+                                        wav_current = rf"{wav_path}{match['filename']}"
+                                        audio_segment = AudioSegment.from_file(wav_current, format='wav')
+                                        output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+
+                                        duration = len(audio_segment)
+                                        subtitle_item = pysrt.SubRipItem()
+
+                                        subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+                                        subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(
+                                            milliseconds=duration)
+                                        subtitle_item.index = order
+                                        subtitle_item.text = f"{specific_line}"
+
+                                        current_time += duration + time_gap
+
+                                        subtitles.append(subtitle_item)
+                        note_order += 1
+                        subtitle_note_item.end = pysrt.SubRipTime(milliseconds=current_time)
+                        subtitle_note_item.index = note_order
+                        subtitle_note_item.text = f"{tmp}"
+                        subtitles_note.append(subtitle_note_item)
+
+    wav_destination = rf"{base_path}{job_name}.wav"
+    output_audio.export(wav_destination, format="wav")
+    print(f"saved wav: {wav_destination}")
+    srt_destination = rf"{base_path}{job_name}.srt"
+    subtitles.save(srt_destination)
+    print(f"saved srt: {srt_destination}")
+    print(order)
+    srt_note_destination = rf"{base_path}{job_name}_note.srt"
+    subtitles_note.save(srt_note_destination)
+    print(f"saved srt: {srt_note_destination}")
+    print(note_order)
 
 
 def generate_wav_srt_by_txt(lines, out_path, wav_path, job_name, with_speaker, with_ch, translation_json):
@@ -335,7 +442,6 @@ def generate_full_audio(wav_path, outwav_name):
     for root, dirs, files in os.walk(wav_path):
         for file in files:
             if ".wav" in file:
-
                 wav_current = rf"{wav_path}{file}"
                 print(wav_current)
 

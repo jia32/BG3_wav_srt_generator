@@ -280,6 +280,67 @@ def load_text_from_lsj(content, need_note):
     return json_content_list
 
 
+def load_text_from_lsj_tmp_not_working(content, need_note):
+    json_content_list = []
+    for root_node in content["save"]["regions"]["dialog"]["nodes"][0]['RootNodes']:
+
+        for node in content["save"]["regions"]["dialog"]["nodes"][0]['node']:
+            if node['UUID'] == root_node['value']:
+                line_list = []
+                json_content_list = load_contentuid_in_node(node, need_note, json_content_list)
+                while node['children'] != [{}]:
+                    for child_node in node['children']:
+                        child_node['']
+                    for current_node in content["save"]["regions"]["dialog"]["nodes"][0]['node']:
+                        if current_node['UUID'] == node['value']:
+                            return
+
+    return json_content_list
+
+
+def load_contentuid_in_node(node, need_note, json_content_list):
+    line_list = []
+    if "TaggedTexts" in node:
+        # print(node)
+        for dialog in node["TaggedTexts"]:
+            # print(dialog)
+            if "TaggedText" in dialog:
+                for tagtext in dialog['TaggedText']:
+                    # print(tagtext)
+                    for line in tagtext['TagTexts'][0]['TagText']:
+                        # if 'OldText' in line:
+                        #     contentuid =f"{line['OldText']['handle']}/{line['TagText']['handle']}"
+                        # else:
+                        contentuid = line['TagText']['handle']
+                        line_list.append({
+                            "contentuid": contentuid,
+                        })
+                        # print(line_list)
+                    if need_note:
+                        if "editorData" in node:
+                            for data in node['editorData'][0]['data']:
+                                if "key" in data and "value" in data['key']:
+                                    if data['key']['value'] == "NodeContext" and data['val']['value'] != "":
+                                        current_node = {
+                                            "content_list": line_list,
+                                            "note": data['val']['value']
+                                        }
+                        else:
+                            current_node = {
+                                "content_list": line_list,
+                            }
+                    else:
+                        current_node = {
+                            "content_list": line_list,
+                        }
+                    print(current_node)
+                else:
+                    contentuid = ""
+
+                json_content_list.append(current_node)
+    return json_content_list
+
+
 def print_text_from_lsj(json_content_list, other_value):
     out_string = ""
     unique_list = []
@@ -454,7 +515,8 @@ def double_check_file_order(out_path):
             final_order_count += len(value)
 
     print(
-        f"No. of scenario matches=={final_order_count == len(lines)}, scenario in final={final_order_count}, scenario from input={len(lines)}")
+        f"No. of scenario matches=={final_order_count == len(lines)}, scenario in final={final_order_count}, scenario "
+        f"from input={len(lines)}")
     if final_order_count != len(lines):
         check_dict_mismatch(final_order, filename_dict_json)
 
@@ -475,7 +537,7 @@ def double_check_file_order(out_path):
                                 current_txt = tmp_txt.readlines()
                             no_lines_in_final += len(current_txt)
                             scenario_count += len(current_txt)
-                print({scenario:scenario_count})
+                print({scenario: scenario_count})
 
     for item in filename_dict_json:
         for value in item.values():
@@ -517,6 +579,19 @@ def check_dict_mismatch(file1_data, file2_data):
                     break
             if not found:
                 print(f"File 2: Subcase {subcase}, Path {paths} has no corresponding match in File 1")
+
+
+def find_content_with_string(search_string):
+    root = tree.getroot()
+
+    uid_list = []
+
+    for content in root.iter('content'):
+        content_text = content.text
+        if content_text and search_string.lower() in content_text.lower():
+            uid = content.get('contentuid')
+            uid_list.append(uid)
+    return uid_list
 
 
 def generate_line_srt_by_filename(filename, with_name, with_ch, translation_json):
@@ -592,9 +667,6 @@ def generate_line_srt_by_filename(filename, with_name, with_ch, translation_json
 
 
 def find_through_metafile(contentuid, wem_meta):
-    ###
-    # TODO: need to refine logic for meta file in order to locate all the voice with text
-    ###
     # voice_meta = look_for_meta(contentuid)
     voice_meta = rf"E:\tmp\converted\voiceMeta"
     matches = []
@@ -614,6 +686,16 @@ def find_through_metafile(contentuid, wem_meta):
                     # if (len(matches) == 0):
                     #     look_for_meta(contentuid)
                     return matches
+
+
+def filter_strings_with_pattern(string_list, pattern):
+    filtered_list = []
+
+    for string in string_list:
+        if re.match(pattern, string):
+            filtered_list.append(string)
+
+    return filtered_list
 
 
 def look_for_meta(contentuid):
@@ -877,3 +959,21 @@ def copy_all_wem(ch_name):
         print(f"copied {source_wav} to {copy_file}")
 
     print(f"copied {len(to_be_copied)} files")
+
+
+def from_srt_to_txt(srt_path, txt_path):
+    out_txt = ""
+    with open(srt_path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+
+        for i in range(0, len(lines), 5):
+            line1 = lines[i].strip()  # 去除行末尾的换行符和空格
+            line2 = lines[i + 1].strip()
+            line3 = lines[i + 2].strip()  # 去除行末尾的换行符和空格
+            line4 = lines[i + 3].strip()
+            out_txt += f"{line3}\n{line4}\n\n"
+            print(line3)
+            print(line4)
+
+    with open(txt_path, 'w', encoding="utf-8") as out_file:
+        out_file.write(out_txt)

@@ -154,9 +154,7 @@ def find_flag_by_word(key_string):
         print()
 
 
-def find_flagname_by_tag():
-    tag_list = ['ORI_Astarion_State_SeekGurAgainstCazador',
-                'ORI_Astarion_State_PowerfulFriends']
+def find_flagname_by_tag(tag_list):
     for tag in tag_list:
         find_flag_by_word(tag)
 
@@ -266,4 +264,41 @@ def copy_lsj_to_script(char):
     for lsj_path, line_list in report_json.items():
         copied_path = shutil.copy(lsj_path, target_path)
         print(f"{copied_path} is copied")
+
+
+def find_lsj_ch_keyword(char, keyword, job_name):
+    output_json_path = rf"{report_location}{job_name}.json"
+    output_line_path = rf"{report_location}{job_name}.txt"
+    uid_list = find_content_with_string(keyword)
+    print(uid_list)
+    wem_meta = {}
+    result = {}
+    line_result = ""
+    for uid in uid_list:
+        pattern = f"{get_speakercode_by_ch(char)}_{uid}.wem*"
+        matches = []
+        for root, dirs, files in os.walk(voice_location):
+            for filename in fnmatch.filter(files, pattern):
+                matches.append(filename)
+
+        if matches is not None and len(matches) == 0:
+            matches = find_through_metafile(uid, wem_meta)
+        if matches is not None and len(matches) != 0:
+            matches = filter_strings_with_pattern(matches, pattern)
+
+        if matches is not None and len(matches) != 0:
+            line = generate_line_srt_by_filename(matches[0], False, False, {})
+            print(f"find '{line}' with filename {matches[0]}")
+            line_result += line + "\n"
+            result[uid] = matches
+
+    print(result)
+    print(f"found {len(result)} lines ")
+    with open(output_json_path, 'w') as output_file:
+        json.dump(result, output_file)
+    print(f"output report to {output_json_path}")
+    with open(output_line_path, 'w', encoding='utf-8') as txt_file:
+        txt_file.write(line_result)
+    print(f"output line to {output_line_path}")
+
 

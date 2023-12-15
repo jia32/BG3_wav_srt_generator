@@ -117,9 +117,9 @@ def gather_to_be_moved(path, output_file_file):
 def combine_char_audio(job_name):
     wav_path = rf"{base_path}\{job_name}\char_wav\\"
     out_path = rf"{base_path}\{job_name}\\"
-    char_f = open(char_final, 'r', encoding='utf-8')
+    char_f = open(char_generic_voice_path, 'r', encoding='utf-8')
     char_f_content = json.loads(char_f.read())
-    json_content_list = load_text_from_lsj(char_f_content)
+    json_content_list = load_text_from_lsj(char_f_content, True)
     # print(json_content_list)
     count = 0
     matches = []
@@ -269,10 +269,11 @@ def combine_audio(job_name, iteration, file_limit):
                         output_audio.export(wav_destination, format="wav")
                         print(f"saved wav: {wav_destination}")
 
-                        tmp_path = f"{out_path}empty_{iteration}.txt"
-                        with open(tmp_path, 'w') as output_file:
-                            json.dump(empty_line, output_file)
-                        print(f"output empty line to {tmp_path}")
+                        if empty_line:
+                            tmp_path = f"{out_path}empty_{iteration}.txt"
+                            with open(tmp_path, 'w') as output_file:
+                                json.dump(empty_line, output_file)
+                            print(f"output empty line to {tmp_path}")
                         return
 
         # 处理剩余的文件
