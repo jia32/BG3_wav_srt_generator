@@ -45,10 +45,10 @@ def create_dialog_txt(script_location, filename):
     target_location = f"{script_location}{filename[:-4]}.txt"
 
     if need_note:
-        write_multi_text_from_lsj(sommon_json_content_list, script_location)
+        # write_multi_text_from_lsj(sommon_json_content_list, script_location)
         generate_file_order(script_location)
         # generate_partial_final_txt(script_location)
-        # double_check_file_order(script_location)
+        double_check_file_order(script_location)
     else:
         out_string += print_text_from_lsj(sommon_json_content_list, filename[:-4])
         if not os.path.exists(karlach_directory):
@@ -188,8 +188,8 @@ def copy_audio_wem(script_txt, current_target_path):
     print(f"copied {count} files")
 
 
-def generate_srt_for_translations(base_path, script_txt, dict_path, job_name):
-    out_path = rf"{base_path}needs_to_be_translated.txt"
+def generate_srt_for_translations(working_path, script_txt, dict_path, job_name):
+    out_path = rf"{working_path}needs_to_be_translated.txt"
 
     with open(script_txt, 'r') as file:
         working_scenario_list = json.load(file)
@@ -204,7 +204,7 @@ def generate_srt_for_translations(base_path, script_txt, dict_path, job_name):
                 for tmp_dict in out_list:
                     for tmp, paths in tmp_dict.items():
                         for path in paths:
-                            txt_path = rf"{base_path}{path}"
+                            txt_path = rf"{working_path}{path}"
                             with open(txt_path, "r") as file:
                                 lines += file.readlines()
 
@@ -212,17 +212,31 @@ def generate_srt_for_translations(base_path, script_txt, dict_path, job_name):
     lines_needs_to_be_translated = list(set(even_lines))
 
     lines_needs_to_be_translated = [
-        string.replace("<i>", "").replace("</i>", "").replace("<br>", "").replace("</br>", "") for string in
+        string.replace("<i>", "").replace("</i>", "").replace("<br>", "").replace("</br>", "").strip() for string in
         lines_needs_to_be_translated]
-
-    # translation_json = tav_pnc_translation
-    # for engline, chline in translation_json.items():
-    #     if f"{engline}\n" not in lines_needs_to_be_translated:
-    #         print(engline)
 
     with open(out_path, 'w') as file:
         file.writelines(lines_needs_to_be_translated)
 
+
+def check_translation(working_path):
+    need_to_translation_path = rf"{working_path}needs_to_be_translated.txt"
+
+    with open(need_to_translation_path, 'r') as file:
+        uniq_line = file.readlines()
+
+    out_path = rf"{working_path}needs_to_be_translated.txt"
+    translation_json = load_tav_translation(astarion_translation_path)
+
+    translation_eng = []
+    need_to_add = []
+    for engline, chline in translation_json.items():
+        translation_eng.append(f"{engline}\n")
+    for uniq in uniq_line:
+        if uniq not in translation_eng:
+            need_to_add.append(uniq.replace("\n", ""))
+    print(len(need_to_add))
+    print(need_to_add)
 
 def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, job_name):
     """
@@ -256,6 +270,8 @@ def generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_na
         translation_json = tav_pnc_translation
     elif "Jaheira" in job_name:
         translation_json = load_tav_translation(jaheira_translation_path)
+    elif "Astarion" in job_name:
+        translation_json = load_tav_translation(astarion_translation_path)
     else:
         translation_json = {}
     wem_meta = {}

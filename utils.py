@@ -547,6 +547,7 @@ def double_check_file_order(out_path):
                     current_txt = tmp_txt.readlines()
                 no_lines_from_dict += len(current_txt)
 
+
     print(
         f"No. of voicefile matches=={no_lines_in_final == no_lines_from_dict}, scenario in final={no_lines_in_final}, scenario from input={no_lines_from_dict}")
 
@@ -626,12 +627,12 @@ def generate_line_srt_by_filename(filename, with_name, with_ch, translation_json
                                                                                                                "").replace(
                 "</b>", "")
             if speaker == "":
-                result_en = f"{content_string}"
+                result_en = f"{content_string}".strip()
             else:
                 if with_name:
-                    result_en = f"{speaker}: {content_string}"
+                    result_en = f"{speaker}: {content_string}".strip()
                 else:
-                    result_en = f"{content_string}"
+                    result_en = f"{content_string}".strip()
 
         else:
             result_en = ""

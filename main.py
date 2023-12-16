@@ -53,12 +53,15 @@ def generate_char_script(char, job_name):
     # create_dialog_txt_only(script_location)
     # Optional operations:
     # generate_partial_final_txt(script_location, "roman")
+
     # double_check_file_order(script_location)
     # copy_audio_wem(script_txt, current_target_path)
     #     script_txt = rf"{script_location}sneak.json"
     script_txt = rf"{script_location}final_order.json"
     # generate_srt_for_translations(script_location, script_txt, dict_path, job_name)
-    # generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
+    # check_translation(script_location)
+
+    generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
     # wav_path = rf"{script_location}\roman\\"
     # outwav_name = rf"roman"
     # generate_full_audio(wav_path, outwav_name)
@@ -84,9 +87,9 @@ def generate_all_files(char):
     # char = "Tav/Durge voice 5"
     # copy_all_wem(char)
     # distinguish_audio(char)
-    # combine_char_audio(char)
+    combine_char_audio(char)
     #
-    combine_audio(char, 1, 1000)
+    # combine_audio(char, 1, 1000)
     # combine_audio(char, 2, 1000)
     # combine_audio(char, 3, 1000)
 
@@ -128,10 +131,10 @@ if __name__ == '__main__':
     char_name = "Jaheira"
     # generate_banter_files()
     # generate_other_files()
-    generate_char_script("Astarion", "GLO_BG_PointNClick_Jaheira_NarrativeArc_Start")
-    # char_list = ["Jergal"]
-    # for char_name in char_list:
-    #     generate_all_files(char_name)
+    # generate_char_script("Halsin", "GLO_BG_PointNClick_Astarion_NarrativeArc_Start")
+    char_list = ["Halsin"]
+    for char_name in char_list:
+        generate_all_files(char_name)
 
     # char_list = ["Tav/Durge voice 2", "Tav/Durge voice 4", "Tav/Durge voice 5", "Laezel", "Minthara"]
     # for char_name in char_list:
