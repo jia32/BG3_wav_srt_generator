@@ -1,7 +1,3 @@
-import json
-import os
-import shutil
-import fnmatch
 from pydub import AudioSegment
 import pysrt
 from datetime import timedelta

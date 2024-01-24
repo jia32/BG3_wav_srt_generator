@@ -1,6 +1,3 @@
-import os
-import json
-import xml.etree.ElementTree as ET
 import re
 import csv
 import fnmatch

@@ -3,7 +3,6 @@ from in_world_voice import *
 from spell import *
 from all_voice import *
 from single_lsj import generate_other_script
-from constant import base_path
 from patch_diff import *
 
 
