@@ -7,6 +7,18 @@ import fnmatch
 import shutil
 from constant import *
 
+import wave
+
+
+def get_wav_duration(file_path):
+    with wave.open(file_path, "rb") as wav_file:
+        frames = wav_file.getnframes()
+        rate = wav_file.getframerate()
+        duration = frames / float(rate)
+        rounded_duration = round(duration, 6)
+        return rounded_duration
+
+
 
 def output_dialog_txt_file(output_string):
     output_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{output_dialog}"
@@ -546,7 +558,6 @@ def double_check_file_order(out_path):
                 with open(txt_path, 'r', encoding='utf-8') as tmp_txt:
                     current_txt = tmp_txt.readlines()
                 no_lines_from_dict += len(current_txt)
-
 
     print(
         f"No. of voicefile matches=={no_lines_in_final == no_lines_from_dict}, scenario in final={no_lines_in_final}, scenario from input={no_lines_from_dict}")

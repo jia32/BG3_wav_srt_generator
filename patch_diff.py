@@ -287,7 +287,7 @@ def find_lsj_ch_keyword(char, keyword, job_name):
             matches = filter_strings_with_pattern(matches, pattern)
 
         if matches is not None and len(matches) != 0:
-            line = generate_line_srt_by_filename(matches[0], False, False, {})
+            line = generate_line_srt_by_filename(matches[0], False, True, {})
             print(f"find '{line}' with filename {matches[0]}")
             line_result += line + "\n"
             result[uid] = matches
@@ -302,3 +302,31 @@ def find_lsj_ch_keyword(char, keyword, job_name):
     print(f"output line to {output_line_path}")
 
 
+def parse_xml(file_path):
+    current_tree = load_xml_file(file_path)
+    root = current_tree.getroot()
+    # Extract content uids and content
+    content_data = {}
+    for item in root.iter('content'):
+        content = item.text
+        content_uid = item.get('contentuid')
+        content_data[content_uid] = content
+    return content_data
+
+
+def compare_xml(file1_path, file2_path):
+    file1_data = parse_xml(file1_path)
+    file2_data = parse_xml(file2_path)
+
+    new_added_content = [uid for uid in file2_data if uid not in file1_data]
+
+    different_content = [uid for uid in file1_data if uid in file2_data and file1_data[uid] != file2_data[uid]]
+
+    # Generate the report
+    print("New added content uids:")
+    for uid in new_added_content:
+        print(file2_data[uid])
+
+    print("\nContent uids with different content:")
+    for uid in different_content:
+        print(f"from {file1_data[uid]} to {file2_data[uid]}")

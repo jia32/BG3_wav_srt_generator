@@ -115,7 +115,7 @@ def gather_to_be_moved(path, output_file_file):
 
 
 def combine_char_audio(job_name):
-    wav_path = rf"{base_path}\{job_name}\char_wav\\"
+    wav_path = rf"{base_path}\{job_name}\wav\\"
     out_path = rf"{base_path}\{job_name}\\"
     char_f = open(char_generic_voice_path, 'r', encoding='utf-8')
     char_f_content = json.loads(char_f.read())
@@ -249,7 +249,6 @@ def combine_audio(job_name, iteration, file_limit):
                     order += 1
                     print(order)
 
-
                     duration = len(audio_segment)
                     subtitle_item = pysrt.SubRipItem()
 
@@ -284,3 +283,46 @@ def combine_audio(job_name, iteration, file_limit):
         out_srt_destination = rf"{out_path}all_{iteration}.srt"
         subtitles.save(out_srt_destination)
         print(f"saved srt: {out_srt_destination}")
+
+
+def combine_audio_only(filepath, iteration, file_limit):
+    '''
+    组合最后的音频和字幕
+    有些角色的太多了，所以以1000为界。由于跑得太慢所以没有做完全的自动化处理，手动iteration
+    :param job_name:
+    :return:
+    '''
+    path = rf"{base_path}{filepath}\\"
+    out_path = rf"{base_path}{filepath}\\"
+    time_gap = 500
+    output_audio = AudioSegment.silent(duration=time_gap)
+    order = 0
+
+    for root, dirs, files in os.walk(path):
+        for i, file in enumerate(files):
+            if i >= file_limit * (iteration - 1):
+                wav_current = rf"{path}{file}"
+                audio_segment = AudioSegment.from_file(wav_current, format='wav')
+
+                channel1 = audio_segment.channels
+                channel2 = output_audio.channels
+                if channel1 != channel2:
+                    if channel1 > channel2:
+                        audio_segment = audio_segment.set_channels(channel2)
+                    if channel1 < channel2:
+                        output_audio = output_audio.set_channels(channel1)
+
+                output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+                order += 1
+                print(order)
+                if i == file_limit * iteration - 1:
+                    wav_destination = rf"{out_path}out.wav"
+                    output_audio.export(wav_destination, format="wav")
+                    print(f"saved wav: {wav_destination}")
+                    return
+
+        # 处理剩余的文件
+        if len(output_audio) > 0:
+            wav_destination = rf"{out_path}out.wav"
+            output_audio.export(wav_destination, format="wav")
+            print(f"saved wav: {wav_destination}")

@@ -45,7 +45,7 @@ def create_dialog_txt(script_location, filename):
     target_location = f"{script_location}{filename[:-4]}.txt"
 
     if need_note:
-        # write_multi_text_from_lsj(sommon_json_content_list, script_location)
+        write_multi_text_from_lsj(sommon_json_content_list, script_location)
         generate_file_order(script_location)
         # generate_partial_final_txt(script_location)
         double_check_file_order(script_location)
@@ -102,9 +102,6 @@ def copy_audio_wem(script_txt, current_target_path):
     :return:
     '''
     count = 0
-    # summon_ch_dict = {"Vampire": "Astarion"}
-    # for destination in portal_list:
-    # script_txt = f"{karlach_directory}back.txt"
     if not os.path.exists(current_target_path):
         os.makedirs(current_target_path)
         print(f"created {current_target_path}")
@@ -238,6 +235,7 @@ def check_translation(working_path):
     print(len(need_to_add))
     print(need_to_add)
 
+
 def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, job_name):
     """
     根据中间文件txt，生成字幕及音频
@@ -255,7 +253,7 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
         # even_lines = lines[1::2]
         print(lines)
         # print(even_lines)
-        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, False, True, {})
+        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, True, True, {})
     else:
         with open(script_txt, 'r') as file:
             working_scenario_list = json.load(file)
@@ -265,13 +263,15 @@ def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, 
         generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_name, wav_path)
 
 
-def generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_name, wav_path, ):
+def generate_wav_srt_for_PnC(working_scenario_list, root_path, dict_json, job_name, wav_path, ):
     if "GenericOrigin" in job_name:
         translation_json = tav_pnc_translation
     elif "Jaheira" in job_name:
-        translation_json = load_tav_translation(jaheira_translation_path)
+        translation_json = load_char_translation(jaheira_translation_path)
     elif "Astarion" in job_name:
-        translation_json = load_tav_translation(astarion_translation_path)
+        translation_json = load_char_translation(astarion_translation_path)
+    elif "Gale" in job_name:
+        translation_json = load_char_translation(gale_translation_path)
     else:
         translation_json = {}
     wem_meta = {}
@@ -296,7 +296,7 @@ def generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_na
                         subtitle_note_item.start = pysrt.SubRipTime(milliseconds=current_time)
 
                         for path in paths:
-                            txt_path = rf"{base_path}{path}"
+                            txt_path = rf"{root_path}{path}"
                             with open(txt_path, "r") as file:
                                 lines = file.readlines()
                                 length += len(file.readlines())
@@ -347,14 +347,14 @@ def generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_na
                         subtitle_note_item.text = f"{tmp}"
                         subtitles_note.append(subtitle_note_item)
 
-    wav_destination = rf"{base_path}{job_name}.wav"
+    wav_destination = rf"{root_path}{job_name}.wav"
     output_audio.export(wav_destination, format="wav")
     print(f"saved wav: {wav_destination}")
-    srt_destination = rf"{base_path}{job_name}.srt"
+    srt_destination = rf"{root_path}{job_name}.srt"
     subtitles.save(srt_destination)
     print(f"saved srt: {srt_destination}")
     print(order)
-    srt_note_destination = rf"{base_path}{job_name}_note.srt"
+    srt_note_destination = rf"{root_path}{job_name}_note.srt"
     subtitles_note.save(srt_note_destination)
     print(f"saved srt: {srt_note_destination}")
     print(note_order)

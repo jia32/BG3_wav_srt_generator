@@ -27,44 +27,52 @@ def generate_spell_files(char):
 
 def generate_char_script(char, job_name):
     # write_output_json(char_ori, char_final)
+    # char = "Shadowheart"
     script_location = rf"{base_path}{char}\script\\"
+
+    # for root, dirs, job_list in os.walk(script_location):
     # job_list = os.listdir(script_location)
-    # for job in job_list:
-    #     job_name = job[:-4]
-    #     print(job_name)
-    # job_list = ['GLO_PAD_CombatReact_PartyDeath', 'GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start']
-    # job_name = "CAMP_MinscJaheira_PAD_PostReunion"
+    job_list =["WYR_KillDirectorGortash_Gortash_Dead"]
+    for job in job_list:
+        # if ".lsj" in job:
+        job_name = job #[:-4]
+        print(job_name)
+        # job_list = ['GLO_PAD_CombatReact_PartyDeath', 'GLO_BG_PointNClick_GenericOrigin_NarrativeArc_Start']
+        # job_name = "CAMP_MinscJaheira_PAD_PostReunion"
 
-    # for job_name in job_list:
-    filename = f"{job_name}.lsj"
+        # for job_name in job_list:
+        filename = f"{job_name}.lsj"
 
-    # print_dialog_txt()
+        # print_dialog_txt()
 
-    # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
-    dict_path = rf"{script_location}file_name_dict.json"
-    current_target_path = rf"{script_location}\wem\{job_name}\\"
-    #
-    # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
-    # script_txt = f"{script_path}{job_name}.txt"
-    wav_path = rf"{script_location}\wav\\"
-    script_txt = rf"{script_location}{job_name}.txt"
+        # target_folder = rf"{base_path}\Orin\scripts\imposter_npc\\"
+        dict_path = rf"{script_location}file_name_dict.json"
+        current_target_path = rf"{script_location}\wem\{job_name}\\"
 
-    # create_dialog_txt(script_location, filename)
-    # create_dialog_txt_only(script_location)
-    # Optional operations:
-    # generate_partial_final_txt(script_location, "roman")
+        # script_path = rf"{base_path}\Orin\scripts\{job_name}\\"
+        script_txt = f"{script_location}{job_name}.txt"
+        wav_path = rf"{script_location}\wav\\"
+        # job_name = "final_order"
+        # script_txt = rf"{script_location}final_order.json"
 
-    # double_check_file_order(script_location)
-    # copy_audio_wem(script_txt, current_target_path)
-    #     script_txt = rf"{script_location}sneak.json"
-    script_txt = rf"{script_location}final_order.json"
-    # generate_srt_for_translations(script_location, script_txt, dict_path, job_name)
-    # check_translation(script_location)
+        # create_dialog_txt(script_location, filename)
+        # create_dialog_txt_only(script_location)
+        # Optional operations:
+        # generate_partial_final_txt(script_location, "roman")
 
-    generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
-    # wav_path = rf"{script_location}\roman\\"
-    # outwav_name = rf"roman"
-    # generate_full_audio(wav_path, outwav_name)
+        # double_check_file_order(script_location)
+        # for i in range(1, 94):
+        #     tmp_txt = rf"{script_location}\{i}.txt"
+        copy_audio_wem(script_txt, current_target_path)
+        #     script_txt = rf"{script_location}sneak.json"
+        # script_txt = rf"{script_location}final_order.json"
+        # generate_srt_for_translations(script_location, script_txt, dict_path, job_name)
+        # check_translation(script_location)
+
+        # generate_full_audio_srt_by_file(script_location, script_txt, dict_path, wav_path, job_name)
+        # wav_path = rf"{script_location}\roman\\"
+        # outwav_name = rf"roman"
+        # generate_full_audio(wav_path, outwav_name)
 
 
 def generate_banter_files():
@@ -89,54 +97,60 @@ def generate_all_files(char):
     # distinguish_audio(char)
     combine_char_audio(char)
     #
-    # combine_audio(char, 1, 1000)
+    path = f"{char}\\wav"
+    # combine_audio_only(path, 1, 1000)
     # combine_audio(char, 2, 1000)
     # combine_audio(char, 3, 1000)
-
+    #
     # combine_audio(char, 4, 1000)
     # combine_audio(char, 5, 1000)
-    #     combine_audio(char, 6, 1000)
-    #     combine_audio(char, 7, 1000)
-    #     combine_audio(char, 8, 1000)
+    # combine_audio(char, 6, 1000)
+    # combine_audio(char, 7, 1000)
+    # combine_audio(char, 8, 1000)
 
 
 def compare_new_patch():
-    last_version = r"E:\Project\BG3_party_banter\Data\text\Dialogs-patch4\\"
-    curr_version = r"E:\Project\BG3_party_banter\Data\text\Dialogs-patch5\\"
+    last_version = r"\text\Dialogs-patch4\\"
+    curr_version = r"\text\Dialogs-patch5\\"
 
-    last_voice = r"E:\tmp\bg3-modders-multitool\UnpackedData\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
-    curr_voice = r"E:\tmp\bg3-modders-multitool\UnpackedMods\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
     output_name = "voice"
     # find_different_files(last_voice, curr_voice, output_name)
 
     # compare_file_size(last_version, curr_version)
     # difference_of_existing_files(curr_version)
-    # output_diff_voice(last_folder, curr_folder)
-    # find_flag_by_word("WolfDreamPoint")
+    # find_different_files(last_voice, curr_voice)
+    find_flag_by_word("RARE")
     # lsj_path = rf"{base_path}\Gale\script\END_BrainBattle_CombatOver_Nested_AfterGithLeave.lsj"
     # find_flag_by_lsj(lsj_path)
-    tag_list = ['ORI_Gale_State_IsGod']
-    find_flagname_by_tag(tag_list)
-    # char = "Narrator"
+    # tag_list = ['RARE']
+    # find_flagname_by_tag(tag_list)
+    # char = "Minsc"
     # copy_wem_file_new_patch(char)
     char_list = ["Gale", "Minsc", "Raphael", "Halsin", "Shadowheart"]
     # for char in char_list:
+    char = "MonkAmulet"
     # find_lsj_by_wem(char)
     # char = "Shadowheart"
     # copy_lsj_to_script(char)
 
+    # hotfix16_english_filepath = "/Data/Input/english.hotfix16.loca.xml"
+    # hotfix17_english_filepath ="/Data/Input/english.hotfix.17.xml"
+    # compare_xml(f"{os.path.dirname(os.path.abspath(__file__))}\\{hotfix16_english_filepath}",f"{os.path.dirname(os.path.abspath(__file__))}\\{hotfix17_english_filepath}" )
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    char_name = "Jaheira"
+    # char_name = "Jaheira"
     # generate_banter_files()
     # generate_other_files()
-    # generate_char_script("Halsin", "GLO_BG_PointNClick_Astarion_NarrativeArc_Start")
-    char_list = ["Halsin"]
-    for char_name in char_list:
-        generate_all_files(char_name)
+    generate_char_script("Gortash", "WYR_KillDirectorGortash_Gortash_Dead")
+    # generate_line_srt_by_filename(filename, with_name, with_ch, translation_json):
 
-    # char_list = ["Tav/Durge voice 2", "Tav/Durge voice 4", "Tav/Durge voice 5", "Laezel", "Minthara"]
+    # char_list = ["Raphael"]
+    # for char_name in char_list:
+    #     generate_all_files(char_name)
+    # combine_audio_only("narrator\\all", 1, 1000)
+
+    # char_list = ["Astarion", "Wyll"]
     # for char_name in char_list:
     #     generate_spell_files(char_name)
 
@@ -144,7 +158,5 @@ if __name__ == '__main__':
     # tmp = "h13f7e675gdf5eg4f44g8489g4bc1538f5e2e"
     # print(generate_line_srt_by_filename(f"123_{tmp}.wem", True, True, {}))
 
-    # find_lsj_ch_keyword("Minthara", "Wizard", "Minthara mentioned wizard(gale)")
-    # srt_path = rf"E:\Project\BG3_party_banter\Data\Input\Tav\Durge voice 2\all\all.srt"
-    # txt_path = rf"E:\Project\BG3_party_banter\Data\Input\Tav\Durge voice 2\all\tav_durge.txt"
+    # find_lsj_ch_keyword("Gale", "damn you", "Gale says damn you")
     # from_srt_to_txt(srt_path, txt_path)
