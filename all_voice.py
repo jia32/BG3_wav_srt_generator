@@ -3,6 +3,7 @@ import pysrt
 from datetime import timedelta
 from utils import *
 from constant import *
+from local_db import *
 
 '''
 @Project:        BG3 voice generator
@@ -25,20 +26,20 @@ def distinguish_audio(job_name):
 
     copy_with_file_list(output_file_file, char_wav_path)
 
-    orin_path = rf"{base_path}Orin\scripts\wav\{job_name}\\"
-    if os.path.exists(orin_path):
-        orin_tmp_path = rf"{base_path}{job_name}\orin_wav\\"
-        if not os.path.exists(orin_tmp_path):
-            os.makedirs(orin_tmp_path)
-        remove_orin(orin_path, wav_path, orin_tmp_path)
+    # orin_path = rf"{base_path}Orin\scripts\wav\{job_name}\\"
+    # if os.path.exists(orin_path):
+    #     orin_tmp_path = rf"{base_path}{job_name}\orin_wav\\"
+    #     if not os.path.exists(orin_tmp_path):
+    #         os.makedirs(orin_tmp_path)
+    #     remove_orin(orin_path, wav_path, orin_tmp_path)
 
-    vm_path = rf"{base_path}{job_name}\vm_wav\\"
-    move_visious_mockery(wav_path, vm_path)
-    death_folder = rf"{base_path}{job_name}\death_wav\\"
-    move_death(wav_path, death_folder)
-    if "Tav" in job_name:
-        orin_path = rf"{base_path}{job_name}\orin_wav\\"
-        move_durge_orin(wav_path, orin_path)
+    # vm_path = rf"{base_path}{job_name}\vm_wav\\"
+    # move_visious_mockery(wav_path, vm_path)
+    # death_folder = rf"{base_path}{job_name}\death_wav\\"
+    # move_death(wav_path, death_folder)
+    # if "Tav" in job_name:
+    #     orin_path = rf"{base_path}{job_name}\orin_wav\\"
+    #     move_durge_orin(wav_path, orin_path)
 
 
 def move_death(wav_path, target_path):
@@ -97,14 +98,22 @@ def copy_with_file_list(output_file_path, target_path):
 
 def gather_to_be_moved(path, output_file_file):
     to_be_moved = []
+
+    # 获取会话
+    session = connection_pool.get_session()
+
     for root, dirs, files in os.walk(path):
         for i, file in enumerate(files):
             wav_current = rf"{path}{file}"
-            specific_line = generate_line_srt_by_filename(file, False, True, {})
-            if specific_line != '' and specific_line.find('\n') == -1:
+            specific_line = generate_line_srt_by_filename(file, False, True, {}, session)
+            if specific_line != '' and specific_line is not None and specific_line.find('\n') == -1 \
+                    or specific_line is None:
                 current = {specific_line: wav_current}
                 to_be_moved.append(current)
                 print(current)
+    # 关闭会话并返回连接到连接池
+    connection_pool.close_session(session)
+
     with open(output_file_file, 'w') as output_file:
         json.dump(to_be_moved, output_file)
         print(f"output list to {output_file_file}")
@@ -200,20 +209,21 @@ def add_translation(line):
         return line
 
 
-def combine_audio(job_name, iteration, file_limit):
+def combine_audio(filepath, iteration, file_limit):
     '''
     组合最后的音频和字幕
     有些角色的太多了，所以以1000为界。由于跑得太慢所以没有做完全的自动化处理，手动iteration
     :param job_name:
     :return:
     '''
-    path = rf"{base_path}{job_name}\wav\\"
-    out_path = rf"{base_path}{job_name}\\"
+    path = rf"{base_path}{filepath}\wav\\"
+    out_path = rf"{base_path}{filepath}\\"
     time_gap = 500
     output_audio = AudioSegment.silent(duration=time_gap)
     order = 0
     current_time = time_gap
     subtitles = pysrt.SubRipFile()
+    session = connection_pool.get_session()
 
     output_counter = 1  # 输出文件计数器
     empty_line = []
@@ -221,7 +231,9 @@ def combine_audio(job_name, iteration, file_limit):
         for i, file in enumerate(files):
             if i >= file_limit * (iteration - 1):
                 skip_current = False
-                specific_line = locate_specific_line(file)
+                specific_line = generate_line_srt_by_filename(file, False, True,
+                                                              {}, session)
+                # specific_line = locate_specific_line(file)
                 print(specific_line)
                 if specific_line == "":
                     delta = timedelta(milliseconds=current_time)
@@ -270,6 +282,9 @@ def combine_audio(job_name, iteration, file_limit):
                                 json.dump(empty_line, output_file)
                             print(f"output empty line to {tmp_path}")
                         return
+
+        # 关闭会话并返回连接到连接池
+        connection_pool.close_session(session)
 
         # 处理剩余的文件
         if len(output_audio) > 0:

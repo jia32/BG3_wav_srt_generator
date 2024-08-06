@@ -11,6 +11,13 @@ import os
 import filecmp
 from constant import *
 from utils import *
+from local_db import *
+
+current_patch_version = "patch6"
+current_patch_wem_path = f"{current_patch_version}_wem"
+current_patch_report_path = f"{current_patch_version}_report"
+current_patch_voicemeta_report_path = f"{current_patch_version}_voicemeta_report"
+current_patch_report_impossible_flag_path = f"{current_patch_version}_flag_analysis_report"
 
 
 def compare_folders(folder1, folder2, depth=0):
@@ -51,7 +58,7 @@ def find_different_files(version1, version2, output_name):
 
     comparison_report = compare_folders(version1, version2)
 
-    output_file = rf"{base_path}\new_patch\report_{output_name}.txt"
+    output_file = rf"{base_path}\new_patch\{current_patch_version}\report_{output_name}.txt"
     with open(output_file, "w") as file:
         for line in comparison_report:
             file.write(line + "\n")
@@ -95,7 +102,7 @@ def output_file_diff(folder_path, previous_file_sizes):
             file_sizes[file_name] = file_size
 
     # 打开输出文件
-    output_file_path = rf"{base_path}\new_patch\report_size.txt"
+    output_file_path = rf"{base_path}\new_patch\{current_patch_version}\report_size.txt"
     with open(output_file_path, "w") as output_file:
         # 遍历文件夹及其子文件夹
         for root, dirs, files in os.walk(folder_path):
@@ -204,15 +211,212 @@ def find_flag_by_lsj(lsj_path):
 
 def copy_wem_file_new_patch(ch_name):
     job_name = "voice"
-    filename_list = rf"{base_path}\new_patch\report_{job_name}.txt"
-    target_path = rf"{base_path}{ch_name}\patch5_wem\\"
+    filename_list = rf"{base_path}\new_patch\{current_patch_version}\report_{job_name}.txt"
+    target_path = rf"{base_path}{ch_name}\{current_patch_wem_path}\\"
 
     copy_updated_file_by_ch(filename_list, ch_name, target_path)
 
 
+def compare_voicemeta_source(last_db_version, current_db_version):
+    old_table = f"lookup_voicemeta_{last_db_version}"
+    new_table = f"lookup_voicemeta_{current_db_version}"
+    output_file_file = rf"{base_path}\new_patch\{current_patch_voicemeta_report_path}.json"
+
+    # 创建数据库引擎
+    engine = create_engine(mysql_url)
+
+    # 创建会话工厂
+    Session = sessionmaker(bind=engine)
+
+    # 创建会话
+    session = Session()
+
+    # 查看新增的语音
+    query = select(
+        text('t2.*')
+    ).select_from(
+        text(f'{new_table} AS t2')
+    ).join(
+        text(f'{old_table} AS t1'),
+        text('t2.contentuid = t1.contentuid'),
+        isouter=True
+    ).where(
+        text('t1.source IS NULL')
+    )
+    result = session.execute(query)
+
+    output_list = []
+    for row in result:
+        # 使用row来访问每个字段的值
+        contentuid = row.contentuid
+        source = row.source
+        print(f"ContentUID: {contentuid}, wem_path: {source}")
+        output_list.append({"contentuid": contentuid, "source": source})
+
+    session.commit()
+    session.close()
+
+    with open(output_file_file, 'w') as output_file:
+        json.dump(output_list, output_file)
+
+    return
+
+
+def generate_report_based_on_flags():
+    with open(flag_report_path, 'r', encoding='utf-8') as f_in:
+        # Load the complete JSON object from the input file
+        json_data = json.load(f_in)
+
+    merged_data = {}
+    for item in json_data['RECORDS']:
+        path = item["path"]
+        if path in merged_data:
+            merged_data[path]["data"].append({
+                "contentuid": item["contentuid"],
+                "ch": item["ch"],
+                "eng": item["eng"]
+            })
+            merged_data[path]["count"] += 1
+        else:
+            merged_data[path] = {
+                "path": path,
+                "data": [{
+                    "contentuid": item["contentuid"],
+                    "ch": item["ch"],
+                    "eng": item["eng"]
+                }],
+                "count": 1
+            }
+
+    result = list(merged_data.values())
+
+    print(f"added {len(result)}")
+
+    output_file_file = rf"{base_path}\new_patch\{current_patch_report_impossible_flag_path}.json"
+    # output_file_file = rf"{base_path}\Astarion\BecameVampireLord.json"
+
+    with open(output_file_file, "w", encoding="utf-8") as output_file:
+        json.dump(result, output_file, indent=4, ensure_ascii=False)
+
+    # 按照 count 从大到小对列表进行排序
+    sorted_list = sorted(result, key=lambda x: x["count"], reverse=True)
+
+    # 提取 path 和 count 构建新的列表
+    path_list = [{"path": item["path"], "count": item["count"]} for item in sorted_list]
+    print(json.dumps(path_list, indent=4, ensure_ascii=False))
+
+
+def generate_report_by_lsj(last_db_version, current_db_version):
+    old_table = f"lookup_voicemeta_{last_db_version}"
+    new_table = f"lookup_voicemeta_{current_db_version}"
+
+    # 获取会话
+    session = connection_pool.get_session()
+    # 查看新增的语音
+    query = select(
+        text('nlsj.path AS lsj_path'),
+        text('nvm.contentuid AS contentuid'),
+        text('nct.content AS ch_content'),
+        text('net.content AS eng_content'),
+        text('nvm.source AS new_wem_path')
+    ).select_from(
+        text(f'{new_table} AS nvm')
+    ).join(
+        text(f'{old_table} AS ovm'),
+        text('nvm.contentuid = ovm.contentuid'),
+        isouter=True
+    ).join(
+        text(f'{ch_table} AS nct'),
+        text('nct.contentuid = nvm.contentuid'),
+        isouter=False
+    ).join(
+        text(f'{eng_table} AS net'),
+        text('net.contentuid = nct.contentuid'),
+        isouter=False
+    ).join(
+        text(f'lookup_script_node_{db_version} AS nnd'),
+        text('nnd.tagtext = nvm.contentuid'),
+        isouter=False
+    ).join(
+        text(f'lookup_script_{db_version} AS nlsj'),
+        text('nlsj.uuid = nnd.script_uuid'),
+        isouter=False
+    ).where(
+        text("ovm.source IS NULL")
+    )
+    result = session.execute(query)
+
+    data_list = []
+    for row in result:
+        # 使用row来访问每个字段的值
+        path = row.lsj_path
+        contentuid = row.contentuid
+        wem_path = row.new_wem_path
+        ch = row.ch_content
+        eng = row.eng_content
+        # print(path, contentuid, wem_path, ch, eng)
+        data_list.append({"contentuid": contentuid, "source": wem_path, "path": path, "ch": ch, "eng": eng})
+    # 关闭会话并返回连接到连接池
+    connection_pool.close_session(session)
+
+    merged_data = {}
+
+    for item in data_list:
+        path = item["path"]
+        if path in merged_data:
+            merged_data[path]["data"].append({
+                "contentuid": item["contentuid"],
+                "source": item["source"],
+                "ch": item["ch"],
+                "eng": item["eng"],
+                "speaker": get_speaker_by_wemname(item["source"])
+            })
+            merged_data[path]["count"] += 1
+        else:
+            merged_data[path] = {
+                "path": path,
+                "data": [{
+                    "contentuid": item["contentuid"],
+                    "source": item["source"],
+                    "ch": item["ch"],
+                    "eng": item["eng"],
+                    "speaker": get_speaker_by_wemname(item["source"])
+                }],
+                "count": 1
+            }
+
+    result = list(merged_data.values())
+
+    print(f"added {len(result)} in {current_db_version}")
+
+    output_file_file = rf"{base_path}\new_patch\{current_patch_report_path}.json"
+    with open(output_file_file, "w", encoding="utf-8") as output_file:
+        json.dump(result, output_file, indent=4, ensure_ascii=False)
+
+    # 按照 count 从大到小对列表进行排序
+    sorted_list = sorted(result, key=lambda x: x["count"], reverse=True)
+    with open(output_file_file, "w", encoding="utf-8") as output_file:
+        json.dump(result, output_file, indent=4, ensure_ascii=False)
+
+    # 提取 path 和 count 构建新的列表
+    path_list = [{"path": item["path"], "count": item["count"]} for item in sorted_list]
+    print(json.dumps(path_list, indent=4, ensure_ascii=False))
+
+
+def get_speaker_by_wemname(filename):
+    filename = filename[:-4]
+    if "_" in filename:
+        charactor = filename.split('_', 1)[0]
+        if charactor in speaker_code_ch:
+            speaker = speaker_code_ch[charactor]
+        else:
+            speaker = ""
+    return speaker
+
+
 def find_lsj_by_wem(char):
-    wem_path = rf"{base_path}{char}\patch5_wem\\"
-    output_file_file = rf"{base_path}{char}\patch5_report.json"
+    wem_path = rf"{base_path}{char}\{current_patch_wem_path}\\"
+    output_file_file = rf"{base_path}{char}\{current_patch_report_path}.json"
     tmp_report = {}
     report = {}
 
@@ -220,9 +424,10 @@ def find_lsj_by_wem(char):
         for wav_file in files:
             wem_path = f"{wav_file[:-3]}wem"
             contentuid = find_contentuid_by_wemfile(wem_path)
-            tmp = f"123_{contentuid}.wav"
+            # return
+            # tmp = f"123_{contentuid}.wav"
             line = generate_line_srt_by_filename(wav_file, False, False, {})
-
+            print(contentuid)
             lsj_file = search_in_file(all_lsj_path, contentuid, False)
             tmp_report[line] = lsj_file
 
@@ -238,21 +443,50 @@ def find_lsj_by_wem(char):
 
 
 def find_contentuid_by_wemfile(wem_path):
+    voice_meta_table = f"lookup_voicemeta_{db_version}"
     meta_file = locate_lsj(wem_path)
+    print(meta_file)
     if not meta_file:
         return
-    with open(meta_file, 'r') as file:
-        meta_json = json.load(file)
 
-    for voiceSpeakerMetaData in meta_json['save']['regions']['VoiceMetaData']['VoiceSpeakerMetaData'][0]['MapValue'][0][
-        'VoiceTextMetaData']:
-        if voiceSpeakerMetaData['MapValue'][0]['Source']['value'] == wem_path:
-            # print(voiceSpeakerMetaData)
-            return voiceSpeakerMetaData['MapKey']['value']
+    # 创建数据库引擎
+    engine = create_engine(mysql_url)
+
+    # 创建会话工厂
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    query = select(
+        text('*'),
+    ).select_from(
+        text(f'{voice_meta_table}'),
+    ).where(
+        text('source = :source')
+    )
+    result = session.execute(query, {'source': wem_path})
+
+    session.commit()
+
+    session.close()
+    rows = result.fetchall()
+    row_count = len(rows)
+    print(row_count)
+
+    for row in rows:
+        # print(row.contentuid, row.codec, row.duration, row.priority, row.source)
+        return row.contentuid
+
+    # with open(meta_file, 'r') as file:
+    #     meta_json = json.load(file)
+    #
+    # for voiceSpeakerMetaData in meta_json['save']['regions']['VoiceMetaData']['VoiceSpeakerMetaData'][0]['MapValue'][0][
+    #     'VoiceTextMetaData']:
+    #     if voiceSpeakerMetaData['MapValue'][0]['Source']['value'] == wem_path:
+    #         # print(voiceSpeakerMetaData)
+    #         return voiceSpeakerMetaData['MapKey']['value']
 
 
 def copy_lsj_to_script(char):
-    report_json_path = rf"{base_path}{char}\patch5_report.json"
+    report_json_path = rf"{base_path}{char}\{current_patch_report_path}.json"
     target_path = rf"{base_path}{char}\script\\"
 
     if not os.path.exists(target_path):
@@ -274,15 +508,17 @@ def find_lsj_ch_keyword(char, keyword, job_name):
     wem_meta = {}
     result = {}
     line_result = ""
+    matches = []
+
+    if matches is not None and len(matches) == 0:
+        matches = find_through_metafile(uid_list, get_speakercode_by_ch(char))
+
     for uid in uid_list:
         pattern = f"{get_speakercode_by_ch(char)}_{uid}.wem*"
-        matches = []
         for root, dirs, files in os.walk(voice_location):
             for filename in fnmatch.filter(files, pattern):
                 matches.append(filename)
 
-        if matches is not None and len(matches) == 0:
-            matches = find_through_metafile(uid, wem_meta)
         if matches is not None and len(matches) != 0:
             matches = filter_strings_with_pattern(matches, pattern)
 

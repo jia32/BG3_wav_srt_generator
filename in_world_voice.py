@@ -4,6 +4,7 @@ import random
 
 from utils import *
 from constant import *
+from local_db import *
 
 '''
 @Project:        BG3 voice generator
@@ -50,8 +51,40 @@ def create_dialog_txt(script_location, filename):
         if not os.path.exists(karlach_directory):
             os.makedirs(karlach_directory)
         out_string = out_string.rstrip("\n")
+        print(out_string)
         with open(target_location, "w", encoding="utf-8") as output_txt:
             output_txt.write(out_string)
+
+
+def create_dialog_txt_JSON(script_location, scipt_path, job):
+    '''
+    根据lsj文件，生成txt中间文件(txt, contentuid)
+
+    :param script_location:
+    :param filename:
+    :return:
+    '''
+    # for destination in portal_list:
+    out_string = ""
+    # lsj_script = back_to_camp
+    # for root, dirs, files in os.walk(script_location):
+    #     for filename in files:
+    # current_path = os.path.join(root, filename)
+    script_f = open(scipt_path, 'r', encoding='utf-8')
+    script_json = json.loads(script_f.read())
+    script_f.close()
+
+    for node in script_json:
+        if job in node['path']:
+            for lines in node['data']:
+                line1 = lines['ch'].strip()  # 去除行末尾的换行符和空格
+                line2 = lines['contentuid'].strip()
+                out_string += f"{line1}\n{line2}\n"
+
+    target_location = f"{script_location}{job}.txt"
+    print(out_string)
+    with open(target_location, "w", encoding="utf-8") as output_txt:
+        output_txt.write(out_string)
 
 
 def create_dialog_txt_only(script_location):
@@ -89,6 +122,91 @@ def print_dialog_txt():
             print(specific_line)
 
 
+def copy_audio_wem_json(root_path, json_file, dict_path, current_target_path):
+    destination_directory = os.path.join(current_target_path, "sneak")
+
+    if not os.path.exists(destination_directory):
+        os.makedirs(destination_directory)
+        print(f"created {destination_directory}")
+
+    with open(json_file, 'r') as file:
+        working_scenario_list = json.load(file)
+    with open(dict_path, 'r') as file:
+        dict_json = json.load(file)
+
+    wem_meta = {}
+    for need_to_work in working_scenario_list:
+        for key, strings in need_to_work.items():
+            for string in strings:
+                out_list = find_dicts_with_key(string, dict_json)
+                for tmp_dict in out_list:
+                    for tmp, paths in tmp_dict.items():
+                        for path in paths:
+                            txt_path = rf"{root_path}{path}"
+                            print(txt_path)
+
+                            with open(txt_path, "r") as file:
+                                lines = file.readlines()
+
+                            for i in range(0, len(lines), 2):
+                                line1 = lines[i].strip()  # 去除行末尾的换行符和空格
+                                line2 = lines[i + 1].strip()
+                                matches = []
+
+                                print(line2)
+                                if "_" in line2:
+                                    pattern = f"{line2}.wem*"
+                                else:
+                                    pattern = f"*{line2}.wem"
+
+                                for root, dirs, files in os.walk(voice_location):
+                                    for filename in fnmatch.filter(files, pattern):
+                                        matches.append(filename)
+
+                                        if matches is not None and len(matches) == 0:
+                                            matches = find_through_metafile(line2, None)
+                                            if matches is not None and len(matches) == 0:
+                                                print(f"{line2} not found in meta")
+                                            else:
+                                                print(f"{line2} found in meta")
+
+                                        if matches is not None:
+
+                                            for match in matches:
+                                                print(match)
+
+                                                wanted_file = os.path.join(root, match)
+                                                try:
+                                                    print()
+                                                    # copied_path = shutil.copy(wanted_file, destination_directory)
+                                                    copied_path = rename_file(wanted_file, destination_directory,
+                                                                              remove_special_characters(f"{line1}.wem"))
+
+                                                    print(f"{copied_path} is copied")
+                                                except FileNotFoundError:
+                                                    print(f"文件不存在，跳过: {wanted_file}")
+
+
+def copy_lsj(root_path, job_name):
+    pattern = f"{job_name}.lsj*"
+    matches = []
+    for root, dirs, files in os.walk(all_lsj_path):
+        for filename in fnmatch.filter(files, pattern):
+            matches.append(os.path.join(root, filename))
+
+    if matches is None or len(matches) == 0:
+        print(f"{job_name} not found")
+    else:
+        for match in matches:
+            needed_script_path = os.path.join(root_path, match)
+            if not os.path.exists(root_path):
+                os.makedirs(root_path)
+                print(f"created {root_path}")
+
+            copied_path = shutil.copy(needed_script_path, root_path)
+            print(f"{copied_path} is copied")
+
+
 def copy_audio_wem(script_txt, current_target_path):
     '''
     根据中间文件txt，将需要的wem文件copy到工作目录下
@@ -102,8 +220,7 @@ def copy_audio_wem(script_txt, current_target_path):
         os.makedirs(current_target_path)
         print(f"created {current_target_path}")
     print(f"open {script_txt}")
-    wem_meta = {}
-    with open(script_txt, 'r') as file:
+    with open(script_txt, 'r', encoding="utf-8") as file:
         lines = file.readlines()
         lines_to_keep = []
 
@@ -117,15 +234,15 @@ def copy_audio_wem(script_txt, current_target_path):
                 pattern = f"{line2}.wem*"
             else:
                 pattern = f"*{line2}.wem"
-            # if "heart" in line1:
+            # if "sneak" in line1:
             count += 1
-
             for root, dirs, files in os.walk(voice_location):
                 for filename in fnmatch.filter(files, pattern):
                     matches.append(filename)
 
             if matches is not None and len(matches) == 0:
-                matches = find_through_metafile(line2, wem_meta)
+                need_to_find_line_list = [line2]
+                matches = find_through_metafile(need_to_find_line_list, None)
                 if matches is not None and len(matches) == 0:
                     print(f"{line2} not found in meta")
                 else:
@@ -146,39 +263,172 @@ def copy_audio_wem(script_txt, current_target_path):
                     print(match)
 
                     # new_name = re.sub(r'[\\:*?"<>|]', '', new_name)
-                    new_name = f"{karlach_wem}{i}.wem"
+                    # new_name = f"{karlach_wem}{i}.wem"
 
-                    if os.path.exists(new_name):
-                        # Extract the file extension
-                        base_name, extension = os.path.splitext(new_name)
+                    # if os.path.exists(new_name):
+                    # Extract the file extension
+                    # base_name, extension = os.path.splitext(new_name)
 
-                        # Initialize a counter
-                        # counter = 1
+                    # Initialize a counter
+                    # counter = 1
 
-                        # Keep incrementing the counter until a unique name is found
-                        # while os.path.exists(f"{base_name}_{counter}{extension}"):
-                        #     counter += 1
+                    # Keep incrementing the counter until a unique name is found
+                    # while os.path.exists(f"{base_name}_{counter}{extension}"):
+                    #     counter += 1
 
-                        # Append the counter to the file name
-                        # new_name = f"{base_name}_{counter}{extension}"
+                    # Append the counter to the file name
+                    # new_name = f"{base_name}_{counter}{extension}"
 
-                    wanted_file = os.path.join(root, match)
+                    wanted_file = os.path.join(voice_location, match)
+                    print(wanted_file)
                     destination_directory = current_target_path
 
                     try:
                         print()
                         copied_path = shutil.copy(wanted_file, destination_directory)
+                        # copied_path = rename_file(wanted_file, destination_directory,
+                        #                           remove_special_characters(f"{line1}.wem"))
+
                         print(f"{copied_path} is copied")
-                        # if os.path.exists(rf"{karlach_wem}{match}"):
-                        #     os.rename(rf"{karlach_wem}{match}", new_name)
-                        #     print(f"renamed from {match} to {new_name}")
+                        # if os.path.exists(rf"{copied_path}"):
+                        #     os.rename(rf"{copied_path}", new_name)
+                        #     print(f"renamed from {copied_path} to {new_name}")
                     except FileNotFoundError:
                         print(f"文件不存在，跳过: {wanted_file}")
-    print(wem_meta)
+    # print(wem_meta)
     print(lines_to_keep)
     with open(script_txt, 'w') as file:
         file.write('\n'.join(lines_to_keep))
     print(f"copied {count} files")
+
+
+def copy_audio_wem_fromJSON(script_txt, current_job_name, current_target_path):
+    '''
+    根据脚本Json，将需要的wem文件copy到工作目录下
+    :param current_job_name:
+    :param script_txt:
+    :param current_target_path:
+    :return:
+    '''
+    count = 0
+    if not os.path.exists(current_target_path):
+        os.makedirs(current_target_path)
+        print(f"created {current_target_path}")
+    file = open(script_txt, 'r', encoding='utf-8')
+    script_json = json.loads(file.read())
+
+    lines_to_keep = []
+
+    for node in script_json:
+        if current_job_name in node['path']:
+            for lines in node['data']:
+                line1 = lines['eng'].strip()  # 去除行末尾的换行符和空格
+                line2 = lines['contentuid'].strip()
+                matches = []
+
+                print(lines['ch'])
+                if "_" in line2:
+                    pattern = f"{line2}.wem*"
+                else:
+                    pattern = f"*{line2}.wem"
+                # if "sneak" in line1:
+                count += 1
+                for root, dirs, files in os.walk(voice_location):
+                    for filename in fnmatch.filter(files, pattern):
+                        matches.append(filename)
+
+                if matches is not None and len(matches) == 0:
+                    need_to_find_line_list = [line2]
+                    matches = find_through_metafile(need_to_find_line_list, None)
+                    if matches is not None and len(matches) == 0:
+                        print(f"{line2} not found in meta")
+                    else:
+                        print(f"{line2} found in meta")
+
+                elif len(matches) > 1:
+                    print(f"{pattern} have more then 1 matches")
+                    random_match = random.choice(matches)
+                    new_line2 = random_match.replace(".wem", "").split("\\")[-1]  # extract the filename without .wem
+                    line2 = new_line2
+
+                # append the lines to keep
+                lines_to_keep.extend([line1, line2])
+                if matches is not None:
+
+                    for match in matches:
+                        print(match)
+                        wanted_file = os.path.join(voice_location, match)
+                        print(wanted_file)
+                        destination_directory = current_target_path
+
+                        try:
+                            print()
+                            copied_path = shutil.copy(wanted_file, destination_directory)
+                            # copied_path = rename_file(wanted_file, destination_directory,
+                            #                           remove_special_characters(f"{line1}.wem"))
+
+                            print(f"{copied_path} is copied")
+                            # if os.path.exists(rf"{copied_path}"):
+                            #     os.rename(rf"{copied_path}", new_name)
+                            #     print(f"renamed from {copied_path} to {new_name}")
+                        except FileNotFoundError:
+                            print(f"文件不存在，跳过: {wanted_file}")
+    # print(wem_meta)
+    print(lines_to_keep)
+    with open(script_txt, 'w') as file:
+        file.write('\n'.join(lines_to_keep))
+    print(f"copied {count} files")
+
+
+def random_line(script_txt, current_target_path):
+    '''
+    根据中间文件txt，将需要的wem文件copy到工作目录下
+    :param target_folder:
+    :param script_txt:
+    :param current_target_path:
+    :return:
+    '''
+    count = 0
+    if not os.path.exists(current_target_path):
+        os.makedirs(current_target_path)
+        print(f"created {current_target_path}")
+    print(f"open {script_txt}")
+    with open(script_txt, 'r') as file:
+        lines = file.readlines()
+        lines_to_keep = []
+
+        for i in range(0, len(lines), 2):
+            line1 = lines[i].strip()  # 去除行末尾的换行符和空格
+            line2 = lines[i + 1].strip()
+            matches = []
+
+            print(line2)
+            if "_" in line2:
+                pattern = f"{line2}.wem*"
+            else:
+                pattern = f"*{line2}.wem"
+            # if "sneak" in line1:
+            count += 1
+            for root, dirs, files in os.walk(voice_location):
+                for filename in fnmatch.filter(files, pattern):
+                    matches.append(filename)
+
+            if len(matches) > 1:
+                print(f"{pattern} have more then 1 matches")
+                random_match = random.choice(matches)
+                new_line2 = random_match.replace(".wem", "").split("\\")[-1]  # extract the filename without .wem
+                line2 = new_line2
+
+            # append the lines to keep
+            lines_to_keep.extend([line1, line2])
+
+    # print(wem_meta)
+    print(lines_to_keep)
+    output_txt_path = f"{script_txt[:-4]}_random.txt"
+    with open(output_txt_path, 'w') as file:
+        file.write('\n'.join(lines_to_keep))
+    print(f"copied {count} files")
+    return output_txt_path
 
 
 def generate_srt_for_translations(working_path, script_txt, dict_path, job_name):
@@ -232,31 +482,33 @@ def check_translation(working_path):
     print(need_to_add)
 
 
-def generate_full_audio_srt_by_file(base_path, script_txt, dict_path, wav_path, job_name):
+def generate_full_audio_srt_by_file(root_path, script_txt, dict_path, wav_path, job_name, need_speaker, need_ch):
     """
     根据中间文件txt，生成字幕及音频
-    :param job_name:
-    :param dict_path:
-    :param base_path:
-    :param script_txt:
-    :param wav_path:
+    :param need_speaker: 生成字幕是否需要提取说话人
+    :param need_ch: 生成字幕是否需要提取中文翻译
+    :param job_name: 工程名称
+    :param dict_path: 对应的字典位置 for pnc
+    :param root_path: 工程路径
+    :param script_txt: 脚本txt路径
+    :param wav_path: 音频路径
     :return:
     """
     if "PointNClick" not in job_name:
-        with open(script_txt, 'r') as file:
+        with open(script_txt, 'r', encoding='latin-1') as file:
             lines = file.readlines()
         # even_lines = list(set(lines[1::2])
         # even_lines = lines[1::2]
         print(lines)
         # print(even_lines)
-        generate_wav_srt_by_txt(lines, base_path, wav_path, job_name, True, True, {})
+        generate_wav_srt_by_txt(lines, root_path, wav_path, job_name, need_speaker, need_ch, {})
     else:
         with open(script_txt, 'r') as file:
             working_scenario_list = json.load(file)
         with open(dict_path, 'r') as file:
             dict_json = json.load(file)
         print(dict_json)
-        generate_wav_srt_for_PnC(working_scenario_list, base_path, dict_json, job_name, wav_path)
+        generate_wav_srt_for_PnC(working_scenario_list, root_path, dict_json, job_name, wav_path)
 
 
 def generate_wav_srt_for_PnC(working_scenario_list, root_path, dict_json, job_name, wav_path, ):
@@ -272,7 +524,9 @@ def generate_wav_srt_for_PnC(working_scenario_list, root_path, dict_json, job_na
         translation_json = {}
     wem_meta = {}
 
-    time_gap = 600
+    time_gap = 400
+
+    session = connection_pool.get_session()
 
     output_audio = AudioSegment.silent(duration=time_gap)
     current_time = time_gap
@@ -317,8 +571,8 @@ def generate_wav_srt_for_PnC(working_scenario_list, root_path, dict_json, job_na
                                                 matches.append({"filename": f"{wem}.wav", "content": content})
                                                 break
                                     for match in matches:
-                                        specific_line = generate_line_srt_by_filename(match['content'], False, False,
-                                                                                      translation_json)
+                                        specific_line = generate_line_srt_by_filename(match['content'], False, True,
+                                                                                      translation_json, session)
                                         print(specific_line)
 
                                         wav_current = rf"{wav_path}{match['filename']}"
@@ -343,6 +597,9 @@ def generate_wav_srt_for_PnC(working_scenario_list, root_path, dict_json, job_na
                         subtitle_note_item.text = f"{tmp}"
                         subtitles_note.append(subtitle_note_item)
 
+    # 关闭会话并返回连接到连接池
+    connection_pool.close_session(session)
+
     wav_destination = rf"{root_path}{job_name}.wav"
     output_audio.export(wav_destination, format="wav")
     print(f"saved wav: {wav_destination}")
@@ -361,78 +618,45 @@ def generate_wav_srt_by_txt(lines, out_path, wav_path, job_name, with_speaker, w
 
     wem_meta = {}
 
-    time_gap = 600
-    output_audio = AudioSegment.silent(duration=time_gap)
-    current_time = time_gap
-    subtitles = pysrt.SubRipFile()
-    order = 1
-    count = 0
+    time_gap = 800
 
-    # for key in portal_list:
-    # script_txt = karlach_tmp
-    # wav_path = karlach_wav
     output_audio = AudioSegment.silent(duration=time_gap)
     current_time = time_gap
     subtitles = pysrt.SubRipFile()
     order = 1
     count = 0
+    # 获取会话
+    session = connection_pool.get_session()
+
     for i in range(0, len(even_lines)):
-        # for i in range(0, len(lines), 2):
-        matches = []
-
-        # line1 = lines[i].strip()  # 去除行末尾的换行符和空格
         line2 = even_lines[i].strip()
-        # print(line1)
-        # if "_" in line2:
-        #     pattern = f"{line2}.wav*"
-        # else:
-        pattern = f"*{line2}.wav"
-        # print(pattern)
         count += 1
         order += 1
-        for root, dirs, files in os.walk(wav_path):
-            # for filename in sorted(files, key=sort_by_number):
-            # print(line2)
-            for filename in fnmatch.filter(files, pattern):
-                matches.append({"filename": filename, "content": filename})
 
-        if len(matches) == 0:
-            for wem, meta in wem_meta.items():
-                if meta == line2:
-                    charactor = wem.split('_', 1)[0]
-                    content = f"{charactor}_{meta}.wav"
-                    matches.append({"filename": f"{wem}.wav", "content": content})
-                    # print(matches)
-                    break
-        # print(matches)
-        for match in matches:
-            # print(match)
-            specific_line = generate_line_srt_by_filename(match['content'], with_speaker, with_ch, translation_json)
-            # specific_line = line1.split('<br>')[0]
-            # for ending in [" v3", " v2", " v1"]:
-            #     if specific_line.endswith(ending):
-            #         specific_line = specific_line[:-len(ending)]
-            # specific_line = specific_line.replace("<i>", "").replace("</i>", "")
-            print(specific_line)
+        match = find_content_wem_from_metafile(line2)
+        print(match)
+        specific_line = generate_line_srt(match['filename'], match['engcontent'], match['chcontent'], with_speaker,
+                                          with_ch)
+        print(specific_line)
 
-            wav_current = rf"{wav_path}{match['filename']}"
-            audio_segment = AudioSegment.from_file(wav_current, format='wav')
-            output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+        wav_current = rf"{wav_path}{match['filename']}"
+        audio_segment = AudioSegment.from_file(wav_current, format='wav')
+        output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
 
-            duration = len(audio_segment)
-            subtitle_item = pysrt.SubRipItem()
+        duration = len(audio_segment)
+        subtitle_item = pysrt.SubRipItem()
 
-            subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
-            subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
-            subtitle_item.index = order
-            subtitle_item.text = f"{specific_line}"
+        subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+        subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
+        subtitle_item.index = order
+        subtitle_item.text = f"{specific_line}"
 
-            current_time += duration + time_gap
+        current_time += duration + time_gap
 
-            subtitles.append(subtitle_item)
+        subtitles.append(subtitle_item)
 
-        # current_time += time_gap * 3
-        # output_audio += AudioSegment.silent(duration=time_gap*3)
+    # 关闭会话并返回连接到连接池
+    connection_pool.close_session(session)
 
     wav_destination = rf"{out_path}{job_name}_{job_name}.wav"
     output_audio.export(wav_destination, format="wav")
@@ -463,3 +687,76 @@ def generate_full_audio(wav_path, outwav_name):
         wav_destination = rf"{wav_path}{outwav_name}.wav"
         output_audio.export(wav_destination, format="wav")
         print(f"saved wav: {wav_destination}")
+
+
+def generate_audio_by_json(script_root_path, script_path):
+    script_f = open(f"{script_path}", 'r', encoding='utf-8')
+    source_json = json.loads(script_f.read())
+    script_f.close()
+
+    time_gap = 800
+    output_audio = AudioSegment.silent(duration=time_gap)
+    current_time = time_gap
+    subtitles = pysrt.SubRipFile()
+    order = 1
+
+    if "data" in source_json:
+        for line_node in source_json['data']:
+            print(f'dealing with {line_node}')
+            current_speaker_code = line_node['source'].split("_")[0]
+            speaker_en = speaker_code[current_speaker_code]
+
+            specific_line = f"{line_node['speaker']}: {line_node['ch']}\n{speaker_en}: {line_node['eng']}"
+            wav_filenamme = line_node['source'].replace(".wem", ".wav")
+
+            wav_filepath = f"{script_root_path}\\wav\\{wav_filenamme}"
+            audio_segment = AudioSegment.from_file(wav_filepath, format='wav')
+            output_audio += audio_segment + AudioSegment.silent(duration=time_gap)
+
+            duration = len(audio_segment)
+            subtitle_item = pysrt.SubRipItem()
+
+            subtitle_item.start = pysrt.SubRipTime(milliseconds=current_time)
+            subtitle_item.end = subtitle_item.start + pysrt.SubRipTime(milliseconds=duration)
+            subtitle_item.index = order
+            subtitle_item.text = f"{specific_line}"
+
+            current_time += duration + time_gap
+
+            subtitles.append(subtitle_item)
+            order += 1
+
+    job_name = re.search(r'\\([^\\]*)(?=\.[^.]+$)', script_path).group(1)
+
+    wav_destination = rf"{script_root_path}{job_name}_{job_name}.wav"
+    output_audio.export(wav_destination, format="wav")
+    print(f"saved wav: {wav_destination}")
+    srt_destination = rf"{script_root_path}{job_name}_{job_name}.srt"
+    subtitles.save(srt_destination)
+    print(f"saved srt: {srt_destination}")
+    print(order)
+
+
+def copy_audio_wem_by_json(script_root_path, script_path):
+    script_f = open(f"{script_path}", 'r', encoding='utf-8')
+    source_json = json.loads(script_f.read())
+    script_f.close()
+    target_path =  f"{script_root_path}wem"
+
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+        print(f"created {target_path}")
+    count = 0
+    if "data" in source_json:
+        for line_node in source_json['data']:
+            source_path = f"{voice_location}{line_node['source']}"
+            try:
+                print()
+                copied_path = shutil.copy(source_path, target_path)
+                print(f"{copied_path} is copied")
+                count += 1
+            except FileNotFoundError:
+                print(f"文件不存在，跳过: {source_path}")
+        print(f"exptected to copy {len(source_json['data'])} file, copied {count} files")
+        return
+    print("data not found, pls check script file format")

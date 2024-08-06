@@ -3,7 +3,7 @@ import csv
 import fnmatch
 import shutil
 from constant import *
-
+from local_db import *
 import wave
 
 
@@ -161,8 +161,8 @@ def filled_string(content_list):
     :return:
     """
     # Parse the XML string to a tree structure
-    file_name = "/Data/Input/english_patch5.xml"
-    file_name_ch = "/Data/Input/chinese_patch5.xml"
+    file_name = "/Data/Input/english_patch6.xml"
+    file_name_ch = "/Data/Input/chinese_patch6.xml"
     # Get the directory path of the current file
     xml_path = f"{os.path.dirname(os.path.abspath(__file__))}\\{file_name}"
     xml_path_ch = f"{os.path.dirname(os.path.abspath(__file__))}\\{file_name_ch}"
@@ -470,6 +470,43 @@ def generate_partial_final_txt(out_path, key_word):
         print(f"writing {key_word} to {out_file}")
 
 
+def rename_file(source_path, destination_path, new_name):
+    suffix = 2  # Start suffix from 2
+    base_name, extension = os.path.splitext(new_name)
+    new_path = os.path.join(destination_path, new_name)
+
+    while os.path.exists(new_path):
+        new_name = f"{base_name}_{suffix}{extension}"
+        new_path = os.path.join(destination_path, new_name)
+        suffix += 1
+
+    shutil.copy(source_path, destination_path)
+    new_file_path = os.path.join(destination_path, new_name)
+    os.rename(os.path.join(destination_path, os.path.basename(source_path)), new_file_path)
+
+    return new_file_path
+
+
+def remove_special_characters(file_name):
+    cleaned_name = re.sub(r"[^\w\s.-]", "", file_name)
+    cleaned_name = re.sub(r"\s+", "_", cleaned_name)
+    # Remove <i>, </i>, <br>, and </br> tags
+    cleaned_name = re.sub(r"<(/?i|br)>", "", cleaned_name)
+
+    # Split the cleaned name into base name and extension
+    base_name, *extensions = cleaned_name.rsplit(".", 1)
+
+    # Remove any dots from the base name except the last one
+    base_name = base_name.replace(".", "")
+    if extensions:
+        base_name += "."
+
+    # Combine the modified base name and extension
+    cleaned_name = base_name + ".".join(extensions)
+
+    return cleaned_name
+
+
 def find_dicts_with_key(string, dict_list):
     matching_dicts = []
     for dictionary in dict_list:
@@ -590,7 +627,7 @@ def check_dict_mismatch(file1_data, file2_data):
                 print(f"File 2: Subcase {subcase}, Path {paths} has no corresponding match in File 1")
 
 
-def find_content_with_string(search_string):
+def find_content_with_string_old(search_string):
     root = tree.getroot()
 
     uid_list = []
@@ -603,8 +640,7 @@ def find_content_with_string(search_string):
     return uid_list
 
 
-def generate_line_srt_by_filename(filename, with_name, with_ch, translation_json):
-    minsc_ch = {}
+def generate_line_srt_by_filename_old(filename, with_name, with_ch, translation_json):
     filename = filename[:-4]
     # print(filename)
 
@@ -667,15 +703,13 @@ def generate_line_srt_by_filename(filename, with_name, with_ch, translation_json
                     result_ch = f"{content_string}"
         else:
             result_ch = ""
-        if result_en in minsc_ch:
-            result_ch = minsc_ch[result_en]
         if result_ch == "":
             return f"{result_en}"
         else:
             return f"{result_ch}\n{result_en}"
 
 
-def find_through_metafile(contentuid, wem_meta):
+def find_through_metafile_old(contentuid, wem_meta):
     # voice_meta = look_for_meta(contentuid)
     voice_meta = rf"E:\tmp\converted\voiceMeta"
     matches = []
