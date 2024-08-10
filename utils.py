@@ -709,9 +709,9 @@ def generate_line_srt_by_filename_old(filename, with_name, with_ch, translation_
             return f"{result_ch}\n{result_en}"
 
 
-def find_through_metafile_old(contentuid, wem_meta):
-    # voice_meta = look_for_meta(contentuid)
-    voice_meta = rf"E:\tmp\converted\voiceMeta"
+def find_through_metafile_old(contentuid, wem_meta, lsj_path):
+    # voice_meta = look_for_meta(contentuid, lsj_path)
+    voice_meta = voice_meta_file_path
     matches = []
 
     for root, dirs, files in os.walk(voice_meta):
@@ -727,7 +727,7 @@ def find_through_metafile_old(contentuid, wem_meta):
                     matches.append(node['MapValue'][0]['Source']['value'])
                     wem_meta[node['MapValue'][0]['Source']['value'][:-4]] = contentuid
                     # if (len(matches) == 0):
-                    #     look_for_meta(contentuid)
+                    #     look_for_meta(contentuid, lsj_path)
                     return matches
 
 

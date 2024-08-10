@@ -148,20 +148,19 @@ def compare_new_patch():
     # curr_version = r"\text\Dialogs-patch5\\"
     # last_version = r"\text\Dialogs-patch5\\"
     # curr_version = r"\text\Dialogs-patch6\\"
-    last_version = r"\text\Dialogs-patch6\\"
-    curr_version = r"\text\Dialogs-patch7\\"
+    last_version = rf"{project_root_path}\Data\text\Dialogs-patch6\\"
+    curr_version = rf"{project_root_path}\Data\text\Dialogs-patch7-beta-eng\\"
 
-    last_voice = r"E:\tmp\converted\patch6\Voice\Mods\Gustav\Localization\English\Soundbanks\\"
+    last_voice = last_voice_location
     curr_voice = voice_location
 
     output_name = "voice"
-    find_different_files(last_voice, curr_voice, output_name)
+    # find_different_files(last_voice, curr_voice, output_name)
     #
     # compare_file_size(last_version, curr_version)
-    # compare_voicemeta_source("v4", "v5")
+    # compare_voicemeta_source(last_db_version,db_version)
 
-    generate_report_by_lsj("v6", "v7")
-    generate_report_based_on_flags()
+    # generate_report_by_voicemeta(last_db_version, db_version)
     # difference_of_existing_files(curr_version)
     # find_flag_by_word("CRD")
     # lsj_path = rf"{base_path}\Gale\script\END_BrainBattle_CombatOver_Nested_AfterGithLeave.lsj"
@@ -176,21 +175,19 @@ def compare_new_patch():
     # find_lsj_by_wem(char)
     # char = "Shadowheart"
     # copy_lsj_to_script(char)
-
-    # hotfix16_english_filepath = "/Data/Input/english.hotfix16.loca.xml"
-    # hotfix17_english_filepath ="/Data/Input/english.hotfix.17.xml"
-    # compare_xml(f"{os.path.dirname(os.path.abspath(__file__))}\\{hotfix16_english_filepath}",f"{os.path.dirname(os.path.abspath(__file__))}\\{hotfix17_english_filepath}" )
-
+    # compare_xml(last_eng_content_xml_path, eng_content_xml_path)
+    # compare_xml(last_ch_content_xml_path, ch_content_xml_path)
+    generate_report_by_xml(last_ch_content_xml_path, ch_content_xml_path)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    init_db()
-
+    # init_db()
+    compare_new_patch()
     # char_name = "Jaheira"
     # generate_banter_files()
     # generate_other_files()
     # generate_char_script()
-    generate_char_script_json()
+    # generate_char_script_json()
     # generate_line_srt_by_filename(filename, with_name, with_ch, translation_json):
 
     # char_list = ["Tav/Durge voice 4"]

@@ -13,11 +13,11 @@ from constant import *
 from utils import *
 from local_db import *
 
-current_patch_version = "patch6"
+current_patch_version = "patch7_closed"
 current_patch_wem_path = f"{current_patch_version}_wem"
 current_patch_report_path = f"{current_patch_version}_report"
 current_patch_voicemeta_report_path = f"{current_patch_version}_voicemeta_report"
-current_patch_report_impossible_flag_path = f"{current_patch_version}_flag_analysis_report"
+current_patch_report_impossible_flag_path = f"{current_patch_version}_compare_patch_impossible"
 
 
 def compare_folders(folder1, folder2, depth=0):
@@ -73,6 +73,106 @@ def difference_of_existing_files(curr_version):
     return
 
 
+def generate_report_by_xml(last_xml_path, curr_xml_path):
+    new_raw_content_output_path = rf"{base_path}\new_patch\patch{db_version[1:]}\new_ch_content_report_raw_{db_version[1:]}.json"
+    new_serial_content_output_path = rf"{base_path}\new_patch\patch{db_version[1:]}\new_ch_content_report_{db_version[1:]}.json"
+
+    updated_raw_content_output_path = rf"{base_path}\new_patch\patch{db_version[1:]}\updated_ch_content_report_raw_{db_version[1:]}.json"
+    updated_serial_content_output_path = rf"{base_path}\new_patch\patch{db_version[1:]}\updated_ch_content_report_{db_version[1:]}.json"
+
+    # 创建数据库引擎
+    engine = create_engine(mysql_url)
+
+    # 创建会话工厂
+    Session = sessionmaker(bind=engine)
+
+    # 创建会话
+    session = Session()
+
+    new_added_content, different_content = compare_xml(last_xml_path, curr_xml_path)
+
+    print(f"found {len(new_added_content)} added content in total, start to group by lsj")
+    new_content_raw = []
+    count = 0
+    for uid in new_added_content:
+        tmp = find_node_by_contentuid(session, uid)
+        if tmp is not None:
+            new_content_raw.append(tmp)
+            count += 1
+    print(f"found {count} in lsj for newly added content")
+
+    different_content_raw = []
+    count = 0
+    for uid in different_content:
+        tmp = find_node_by_contentuid(session, uid)
+        if tmp is not None:
+            different_content_raw.append(tmp)
+            count += 1
+    print(f"found {count} in lsj for updated content")
+
+    session.commit()
+    session.close()
+
+    new_content_result = {'RECORDS': new_content_raw}
+    with open(new_raw_content_output_path, "w", encoding="utf-8") as output_file:
+        json.dump(new_content_result, output_file, indent=4, ensure_ascii=False)
+
+    updated_content_result = {'RECORDS': different_content_raw}
+    with open(updated_raw_content_output_path, "w", encoding="utf-8") as output_file:
+        json.dump(updated_content_result, output_file, indent=4, ensure_ascii=False)
+
+    normalize_report_by_path(new_raw_content_output_path, new_serial_content_output_path)
+    normalize_report_by_path(updated_raw_content_output_path, updated_serial_content_output_path)
+
+
+def find_node_by_contentuid(session, uid):
+    lsj_script_table = f"lookup_script_{db_version}"
+    lsj_script_node_table = f'lookup_script_node_{db_version}'
+
+    # 查看新增的语音
+    query = (
+        select(
+            text('ch.contentuid AS contentuid'),
+            text('ch.content AS ch_content'),
+            text('en.content AS eng_content'),
+            text('lsj.path AS script_name'),
+        )
+        .select_from(
+            text(f'{ch_table} ch'),
+        ).join(
+            text(f'{eng_table} en'),
+            text(f'ch.contentuid = en.contentuid'),
+        ).join(
+            text(f'{lsj_script_node_table} node'),
+            text(f'node.tagtext = en.contentuid'),
+        ).join(
+            text(f'{lsj_script_table} lsj'),
+            text(f'lsj.uuid = node.script_uuid'),
+        )
+        .filter(
+            text(f'en.contentuid = "{uid}"')
+        )
+    )
+    result = session.execute(query)
+    rows = result.fetchall()
+    if len(rows) > 1:
+        print(f"Find more than one matching contentuid={uid}, skip")
+        return None
+    elif len(rows) == 0:
+        print(f"Content not found in lsj, skip")
+        return None
+    else:
+        node_new = {}
+        for row in rows:
+            node_new['contentuid'] = row.contentuid
+            node_new['ch'] = row.ch_content
+            node_new['eng'] = row.eng_content
+            node_new['path'] = row.script_name
+            # print(f"contentuid: {contentuid}, ch_content: {ch_content}, "
+            #       f"eng_content: {eng_content}, script_name:{script_name}")
+            return node_new
+
+
 def compare_file_size(last_version, curr_version):
     # 指定之前记录文件大小的文件夹路径
     previous_file_sizes = {}
@@ -85,6 +185,7 @@ def compare_file_size(last_version, curr_version):
             file_size = os.path.getsize(file_path)
             previous_file_sizes[file_name] = file_size
 
+    print("loaded file size for last version")
     # 调用函数比较文件大小
     output_file_diff(curr_version, previous_file_sizes)
 
@@ -100,6 +201,8 @@ def output_file_diff(folder_path, previous_file_sizes):
             # 获取文件大小
             file_size = os.path.getsize(file_path)
             file_sizes[file_name] = file_size
+
+    print("loaded file size for new version")
 
     # 打开输出文件
     output_file_path = rf"{base_path}\new_patch\{current_patch_version}\report_size.txt"
@@ -123,6 +226,8 @@ def output_file_diff(folder_path, previous_file_sizes):
                 elif file_size < previous_size:
                     difference = previous_size - file_size
                     output_file.write(f"文件 {file_name} 变小了 {difference} 字节\n")
+
+    print(f"output report path: {output_file_path}")
 
 
 def copy_updated_file_by_ch(reference, ch_name, target_path):
@@ -262,8 +367,8 @@ def compare_voicemeta_source(last_db_version, current_db_version):
     return
 
 
-def generate_report_based_on_flags():
-    with open(flag_report_path, 'r', encoding='utf-8') as f_in:
+def normalize_report_by_path(input_path, output_path):
+    with open(input_path, 'r', encoding='utf-8') as f_in:
         # Load the complete JSON object from the input file
         json_data = json.load(f_in)
 
@@ -292,10 +397,10 @@ def generate_report_based_on_flags():
 
     print(f"added {len(result)}")
 
-    output_file_file = rf"{base_path}\new_patch\{current_patch_report_impossible_flag_path}.json"
-    # output_file_file = rf"{base_path}\Astarion\BecameVampireLord.json"
+    # output_file_file = rf"{base_path}\new_patch\{current_patch_report_impossible_flag_path}.json"
+    # # output_file_file = rf"{base_path}\Astarion\BecameVampireLord.json"
 
-    with open(output_file_file, "w", encoding="utf-8") as output_file:
+    with open(output_path, "w", encoding="utf-8") as output_file:
         json.dump(result, output_file, indent=4, ensure_ascii=False)
 
     # 按照 count 从大到小对列表进行排序
@@ -306,7 +411,7 @@ def generate_report_based_on_flags():
     print(json.dumps(path_list, indent=4, ensure_ascii=False))
 
 
-def generate_report_by_lsj(last_db_version, current_db_version):
+def generate_report_by_voicemeta(last_db_version, current_db_version):
     old_table = f"lookup_voicemeta_{last_db_version}"
     new_table = f"lookup_voicemeta_{current_db_version}"
 
@@ -566,3 +671,5 @@ def compare_xml(file1_path, file2_path):
     print("\nContent uids with different content:")
     for uid in different_content:
         print(f"from {file1_data[uid]} to {file2_data[uid]}")
+
+    return new_added_content, different_content
